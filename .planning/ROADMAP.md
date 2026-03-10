@@ -14,7 +14,7 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Project Foundation & CLI** - Go module, cobra CLI skeleton, command parsing, project layout
+- [x] **Phase 1: Project Foundation & CLI** - Go module, cobra CLI skeleton, command parsing, project layout
 - [ ] **Phase 2: Image Source Access** - go-containerregistry integration for daemon, registry, and tarball sources
 - [ ] **Phase 3: File Tree Engine** - Parse tar layers into in-memory file trees, handle OCI whiteouts, squash layers
 - [ ] **Phase 4: Diff Engine** - Compare two file trees, compute added/removed/modified with file metadata
@@ -33,7 +33,7 @@ None
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: Go module setup, cobra CLI with flags and argument validation
+- [x] 01-01: Go module setup, cobra CLI with flags and argument validation
 
 ### Phase 2: Image Source Access
 **Goal**: Pull and open container images from local Docker daemon, remote registries, and OCI tarball archives using go-containerregistry
@@ -92,7 +92,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Project Foundation & CLI | 0/1 | Not started | - |
+| 1. Project Foundation & CLI | 1/1 | Complete | 2026-03-11 |
 | 2. Image Source Access | 0/TBD | Not started | - |
 | 3. File Tree Engine | 0/TBD | Not started | - |
 | 4. Diff Engine | 0/TBD | Not started | - |
