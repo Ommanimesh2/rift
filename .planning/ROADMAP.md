@@ -30,7 +30,10 @@ None
 **Goal**: Working Go binary with cobra CLI that parses two image references and validates arguments
 **Depends on**: Nothing (first phase)
 **Research**: Unlikely (Go project setup, cobra — established patterns)
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 01-01: Go module setup, cobra CLI with flags and argument validation
 
 ### Phase 2: Image Source Access
 **Goal**: Pull and open container images from local Docker daemon, remote registries, and OCI tarball archives using go-containerregistry
@@ -89,7 +92,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Project Foundation & CLI | 0/TBD | Not started | - |
+| 1. Project Foundation & CLI | 0/1 | Not started | - |
 | 2. Image Source Access | 0/TBD | Not started | - |
 | 3. File Tree Engine | 0/TBD | Not started | - |
 | 4. Diff Engine | 0/TBD | Not started | - |
