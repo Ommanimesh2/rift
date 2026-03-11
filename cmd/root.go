@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ommmishra/imgdiff/internal/source"
 	"github.com/spf13/cobra"
 )
 
@@ -38,22 +39,49 @@ Image sources supported:
   imgdiff ./old-image.tar ./new-image.tar`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		image1 := args[0]
-		image2 := args[1]
-
-		platform := flags.platform
-		if platform == "" {
-			platform = "host"
+		opts := source.Options{
+			Platform: flags.platform,
 		}
 
-		fmt.Printf("Comparing %s vs %s (format: %s, platform: %s", image1, image2, flags.format, platform)
-		if flags.securityOnly {
-			fmt.Printf(", security-only: true")
+		// Open first image
+		img1, err := source.Open(args[0], opts)
+		if err != nil {
+			return fmt.Errorf("failed to open image %q: %w", args[0], err)
 		}
-		if flags.quick {
-			fmt.Printf(", quick: true")
+
+		// Open second image
+		img2, err := source.Open(args[1], opts)
+		if err != nil {
+			return fmt.Errorf("failed to open image %q: %w", args[1], err)
 		}
-		fmt.Println(")")
+
+		// Print confirmation with source type
+		fmt.Printf("Opened %s (%s)\n", args[0], source.DetectSourceType(args[0]))
+		fmt.Printf("Opened %s (%s)\n", args[1], source.DetectSourceType(args[1]))
+
+		// Print layer count for each image
+		layers1, err := img1.Layers()
+		if err != nil {
+			return fmt.Errorf("failed to read layers for %q: %w", args[0], err)
+		}
+		layers2, err := img2.Layers()
+		if err != nil {
+			return fmt.Errorf("failed to read layers for %q: %w", args[1], err)
+		}
+		fmt.Printf("  %s: %d layers\n", args[0], len(layers1))
+		fmt.Printf("  %s: %d layers\n", args[1], len(layers2))
+
+		// Print manifest digest for each image
+		digest1, err := img1.Digest()
+		if err != nil {
+			return fmt.Errorf("failed to read digest for %q: %w", args[0], err)
+		}
+		digest2, err := img2.Digest()
+		if err != nil {
+			return fmt.Errorf("failed to read digest for %q: %w", args[1], err)
+		}
+		fmt.Printf("  %s: %s\n", args[0], digest1)
+		fmt.Printf("  %s: %s\n", args[1], digest2)
 
 		return nil
 	},
