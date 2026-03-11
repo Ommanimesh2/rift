@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 7 — Output Formats
+**Current focus:** Phase 8 — Performance Optimization
 
 ## Current Position
 
-Phase: 6 of 9 complete (Security Analysis)
-Plan: 2/2 in Phase 6 complete
-Status: Phase 6 complete, ready for Phase 7
-Last activity: 2026-03-11 — Phase 6 complete (06-01 TDD security engine, 06-02 output+CLI integration)
+Phase: 7 of 9 complete (Output Formats)
+Plan: 3/3 in Phase 7 complete
+Status: Phase 7 complete, ready for Phase 8
+Last activity: 2026-03-11 — Phase 7 complete (07-01 JSON formatter TDD, 07-02 Markdown formatter TDD, 07-03 CLI wiring)
 
-Progress: ███████░░░ 67%
+Progress: ████████░░ 78%
 
 ## Performance Metrics
 
@@ -77,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 6 complete — internal/security package with Analyze/SecurityEvent (7 kinds, 17 tests), FormatSecurityEvent + RenderTerminalWithSecurity in output package, --security-only flag wired in CLI
-Resume file: .planning/phases/06-security-analysis/06-02-SUMMARY.md
+Stopped at: Phase 7 complete — FormatJSON (10 tests), FormatMarkdown (11 tests), --format flag fully wired in CLI with switch dispatch, 4 integration tests in cmd/root_test.go
+Resume file: .planning/phases/07-output-formats/07-03-SUMMARY.md
