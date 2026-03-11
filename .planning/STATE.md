@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 3 — File Tree Engine
+**Current focus:** Phase 5 — Terminal Output
 
 ## Current Position
 
-Phase: 4 of 9 (Diff Engine)
+Phase: 5 of 9 (Terminal Output)
 Plan: 0 of TBD in current phase
-Status: Phase 3 complete, ready for Phase 4
-Last activity: 2026-03-11 — Phase 3 complete (03-01, 03-02, 03-03 all done)
+Status: Phase 4 complete, ready for Phase 5
+Last activity: 2026-03-11 — Phase 4 complete (04-01 TDD, 04-02 CLI wiring)
 
-Progress: ████░░░░░░ 33%
+Progress: █████░░░░░ 44%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 5
 - Average duration: ~10 min
-- Total execution time: ~0.5 hours
+- Total execution time: ~0.7 hours
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: ████░░░░░░ 33%
 | 1. Project Foundation & CLI | 1 | ~15 min | ~15 min |
 | 2. Image Source Access | 2 | ~15 min | ~8 min |
 | 3. File Tree Engine | 3 | ~30 min | ~10 min |
+| 4. Diff Engine | 2 | ~5 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (10 min), 02-02 (5 min), 03-01 (15 min), 03-02 (5 min), 03-03 (10 min)
-- Trend: Stable ~10 min/plan
+- Last 5 plans: 03-01 (15 min), 03-02 (5 min), 03-03 (10 min), 04-01 (3 min), 04-02 (1 min)
+- Trend: Stable ~7 min/plan
 
 ## Accumulated Context
 
@@ -53,6 +54,9 @@ Recent decisions affecting current work:
 - **fakeLayer test helper pattern** — implement v1.Layer backed by bytes.Buffer for unit testing without real images
 - **formatBytes lives in tree.go** — called by FileTree.String(), keeps formatting co-located with the type
 - **BuildTree co-located with ParseLayer in 03-01** — single file package, all tree logic in internal/tree/tree.go
+- **Diff package in internal/diff/** — separate from tree package; clean boundary between tree construction and comparison
+- **DiffEntry has per-attribute change flags** — ContentChanged, ModeChanged, UIDChanged, GIDChanged, LinkTargetChanged, TypeChanged for granular diff reporting
+- **formatBytes duplicated in diff package** — tree.formatBytes is unexported; diff package has its own copy (same logic)
 
 ### Deferred Issues
 
@@ -65,5 +69,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 3 complete — FileNode, ParseLayer, BuildTree, BuildFromImage implemented and tested; CLI prints tree summary
-Resume file: .planning/phases/03-file-tree-engine/03-03-SUMMARY.md
+Stopped at: Phase 4 complete — DiffEntry/DiffResult types, Diff function with 19 tests, CLI prints diff summary
+Resume file: .planning/phases/04-diff-engine/04-02-SUMMARY.md
