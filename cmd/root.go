@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ommmishra/imgdiff/internal/source"
+	"github.com/ommmishra/imgdiff/internal/tree"
 	"github.com/spf13/cobra"
 )
 
@@ -57,31 +58,22 @@ Image sources supported:
 
 		// Print confirmation with source type
 		fmt.Printf("Opened %s (%s)\n", args[0], source.DetectSourceType(args[0]))
+
+		// Build file tree for first image.
+		tree1, err := tree.BuildFromImage(img1)
+		if err != nil {
+			return fmt.Errorf("failed to build file tree for %q: %w", args[0], err)
+		}
+		fmt.Printf("  Tree: %s\n", tree1)
+
 		fmt.Printf("Opened %s (%s)\n", args[1], source.DetectSourceType(args[1]))
 
-		// Print layer count for each image
-		layers1, err := img1.Layers()
+		// Build file tree for second image.
+		tree2, err := tree.BuildFromImage(img2)
 		if err != nil {
-			return fmt.Errorf("failed to read layers for %q: %w", args[0], err)
+			return fmt.Errorf("failed to build file tree for %q: %w", args[1], err)
 		}
-		layers2, err := img2.Layers()
-		if err != nil {
-			return fmt.Errorf("failed to read layers for %q: %w", args[1], err)
-		}
-		fmt.Printf("  %s: %d layers\n", args[0], len(layers1))
-		fmt.Printf("  %s: %d layers\n", args[1], len(layers2))
-
-		// Print manifest digest for each image
-		digest1, err := img1.Digest()
-		if err != nil {
-			return fmt.Errorf("failed to read digest for %q: %w", args[0], err)
-		}
-		digest2, err := img2.Digest()
-		if err != nil {
-			return fmt.Errorf("failed to read digest for %q: %w", args[1], err)
-		}
-		fmt.Printf("  %s: %s\n", args[0], digest1)
-		fmt.Printf("  %s: %s\n", args[1], digest2)
+		fmt.Printf("  Tree: %s\n", tree2)
 
 		return nil
 	},
