@@ -79,13 +79,20 @@ Image sources supported:
 
 		result := diff.Diff(tree1, tree2)
 
+		// Compute layer breakdown; skip gracefully on error.
+		layerSummary, err := output.CompareLayers(img1, img2)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not compute layer breakdown: %v\n", err)
+			layerSummary = nil
+		}
+
 		fmt.Println()
 		if flags.format == "terminal" {
-			rendered := output.RenderTerminal(result, args[0], args[1])
+			rendered := output.RenderTerminalWithLayers(result, args[0], args[1], layerSummary)
 			fmt.Print(rendered)
 		} else {
 			fmt.Fprintf(os.Stderr, "format %q not yet supported, falling back to terminal\n", flags.format)
-			rendered := output.RenderTerminal(result, args[0], args[1])
+			rendered := output.RenderTerminalWithLayers(result, args[0], args[1], layerSummary)
 			fmt.Print(rendered)
 		}
 

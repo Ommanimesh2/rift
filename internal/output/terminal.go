@@ -19,22 +19,46 @@ var (
 	dimStyle      = lipgloss.NewStyle().Faint(true)
 )
 
+// RenderLayerSection renders a LayerSummary as a dim-styled block for display
+// between the header and file listing. Returns an empty string if summary is nil.
+func RenderLayerSection(summary *LayerSummary) string {
+	if summary == nil {
+		return ""
+	}
+	return dimStyle.Render(FormatLayerSummary(summary)) + "\n"
+}
+
 // RenderTerminal returns a fully styled terminal diff output string for the
 // given DiffResult. image1Name and image2Name are used in the header line.
+// layerSummary may be nil, in which case the layer section is omitted.
 //
 // Output structure:
 //  1. Header: "Comparing {image1} → {image2}"
 //  2. Blank line
-//  3. One styled entry line per DiffEntry (added=green, removed=red, modified=yellow)
+//  3. Layer breakdown (if layerSummary is non-nil)
 //  4. Blank line
-//  5. Summary line with per-category colors
+//  5. One styled entry line per DiffEntry (added=green, removed=red, modified=yellow)
+//  6. Blank line
+//  7. Summary line with per-category colors
 func RenderTerminal(result *diff.DiffResult, image1Name, image2Name string) string {
+	return RenderTerminalWithLayers(result, image1Name, image2Name, nil)
+}
+
+// RenderTerminalWithLayers is like RenderTerminal but includes an optional
+// layer breakdown section when layerSummary is non-nil.
+func RenderTerminalWithLayers(result *diff.DiffResult, image1Name, image2Name string, layerSummary *LayerSummary) string {
 	var sb strings.Builder
 
 	// Header
 	header := fmt.Sprintf("Comparing %s → %s", image1Name, image2Name)
 	sb.WriteString(headerStyle.Render(header))
 	sb.WriteString("\n\n")
+
+	// Layer breakdown (optional)
+	if layerSummary != nil {
+		sb.WriteString(RenderLayerSection(layerSummary))
+		sb.WriteByte('\n')
+	}
 
 	// Per-entry lines
 	if len(result.Entries) == 0 {
