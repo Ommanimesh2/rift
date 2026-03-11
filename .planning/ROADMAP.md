@@ -18,8 +18,8 @@ None
 - [x] **Phase 2: Image Source Access** - go-containerregistry integration for daemon, registry, and tarball sources
 - [x] **Phase 3: File Tree Engine** - Parse tar layers into in-memory file trees, handle OCI whiteouts, squash layers
 - [x] **Phase 4: Diff Engine** - Compare two file trees, compute added/removed/modified with file metadata
-- [ ] **Phase 5: Terminal Output** - Color-coded diff with lipgloss, size impact summary, per-layer breakdown (3 plans)
-- [ ] **Phase 6: Security Analysis** - SUID/SGID detection, permission changes, new executables, world-writable files
+- [x] **Phase 5: Terminal Output** - Color-coded diff with lipgloss, size impact summary, per-layer breakdown (3 plans)
+- [x] **Phase 6: Security Analysis** - SUID/SGID detection, permission changes, new executables, world-writable files
 - [ ] **Phase 7: Output Formats** - JSON and Markdown formatters for CI/CD pipelines and PR comments
 - [ ] **Phase 8: Performance Optimization** - Shared layer skip, streaming comparison, --quick manifest-only mode
 - [ ] **Phase 9: CI/CD & Distribution** - Exit codes, multi-arch --platform flag, registry auth support
@@ -82,7 +82,11 @@ Plans:
 **Goal**: Detect and highlight security-relevant changes — new SUID/SGID binaries, permission escalations, new executables, world-writable files. Add --security-only flag for focused security view
 **Depends on**: Phase 4
 **Research**: Unlikely (file permission bit analysis — standard Go)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 06-01: SecurityEvent types + Analyze function (TDD)
+- [x] 06-02: Terminal output security section + --security-only CLI flag
 
 ### Phase 7: Output Formats
 **Goal**: JSON output for CI/CD pipeline consumption and Markdown output for PR comments/documentation. --format flag to select output mode
@@ -115,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
 | 4. Diff Engine | 2/2 | Complete | 2026-03-11 |
 | 5. Terminal Output | 3/3 | Complete | 2026-03-11 |
-| 6. Security Analysis | 0/TBD | Not started | - |
+| 6. Security Analysis | 2/2 | Complete | 2026-03-11 |
 | 7. Output Formats | 0/TBD | Not started | - |
 | 8. Performance Optimization | 0/TBD | Not started | - |
 | 9. CI/CD & Distribution | 0/TBD | Not started | - |

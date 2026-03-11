@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 6 — Security Analysis
+**Current focus:** Phase 7 — Output Formats
 
 ## Current Position
 
-Phase: 5 of 9 complete (Terminal Output)
-Plan: 3/3 in Phase 5 complete
-Status: Phase 5 complete, ready for Phase 6
-Last activity: 2026-03-11 — Phase 5 complete (05-01 TDD, 05-02 lipgloss+CLI, 05-03 TDD+wiring)
+Phase: 6 of 9 complete (Security Analysis)
+Plan: 2/2 in Phase 6 complete
+Status: Phase 6 complete, ready for Phase 7
+Last activity: 2026-03-11 — Phase 6 complete (06-01 TDD security engine, 06-02 output+CLI integration)
 
-Progress: ██████░░░░ 56%
+Progress: ███████░░░ 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 7
 - Average duration: ~10 min
-- Total execution time: ~0.7 hours
+- Total execution time: ~0.9 hours
 
 **By Phase:**
 
@@ -32,6 +32,7 @@ Progress: ██████░░░░ 56%
 | 3. File Tree Engine | 3 | ~30 min | ~10 min |
 | 4. Diff Engine | 2 | ~5 min | ~3 min |
 | 5. Terminal Output | 3 | ~30 min | ~10 min |
+| 6. Security Analysis | 2 | ~10 min | ~5 min |
 
 **Recent Trend:**
 - Last 5 plans: 03-01 (15 min), 03-02 (5 min), 03-03 (10 min), 04-01 (3 min), 04-02 (1 min)
@@ -61,6 +62,9 @@ Recent decisions affecting current work:
 - **output.FormatBytes is the single exported version** — replaces the three duplicated unexported copies; lipgloss renderer and layer formatter both reuse it
 - **RenderTerminal delegates to RenderTerminalWithLayers(nil)** — backward compatible; nil layerSummary skips the layer section cleanly
 - **CompareLayers errors are non-fatal in CLI** — logged to stderr as warning; diff output never blocked by layer inspection failure
+- **perm_escalation uses 0o7777 mask not 0o777** — SUID/SGID bits are above 0o777; wider mask needed to detect bit additions as escalation
+- **RenderTerminalWithLayers delegates to RenderTerminalWithSecurity(nil events)** — nil/empty events skips security section cleanly
+- **security.Analyze always returns non-nil slice** — callers can len-check safely without nil guard
 
 ### Deferred Issues
 
@@ -73,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 5 complete — output package with FormatBytes/FormatEntry/FormatSummary/Render, lipgloss terminal renderer, layer comparison with CompareLayers/FormatLayerSummary, full CLI integration
-Resume file: .planning/phases/05-terminal-output/05-03-SUMMARY.md
+Stopped at: Phase 6 complete — internal/security package with Analyze/SecurityEvent (7 kinds, 17 tests), FormatSecurityEvent + RenderTerminalWithSecurity in output package, --security-only flag wired in CLI
+Resume file: .planning/phases/06-security-analysis/06-02-SUMMARY.md
