@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ommmishra/imgdiff/internal/diff"
 	"github.com/ommmishra/imgdiff/internal/source"
 	"github.com/ommmishra/imgdiff/internal/tree"
 	"github.com/spf13/cobra"
@@ -74,6 +75,10 @@ Image sources supported:
 			return fmt.Errorf("failed to build file tree for %q: %w", args[1], err)
 		}
 		fmt.Printf("  Tree: %s\n", tree2)
+
+		fmt.Println()
+		result := diff.Diff(tree1, tree2)
+		fmt.Printf("Diff: %s\n", result)
 
 		return nil
 	},
