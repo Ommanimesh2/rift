@@ -74,9 +74,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Diff output text formatter (TDD)
-- [ ] 05-02: lipgloss terminal styling + CLI integration
-- [ ] 05-03: Layer comparison and breakdown (TDD)
+- [x] 05-01: Diff output text formatter (TDD)
+- [x] 05-02: lipgloss terminal styling + CLI integration
+- [x] 05-03: Layer comparison and breakdown (TDD)
 
 ### Phase 6: Security Analysis
 **Goal**: Detect and highlight security-relevant changes — new SUID/SGID binaries, permission escalations, new executables, world-writable files. Add --security-only flag for focused security view
@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
 | 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
 | 4. Diff Engine | 2/2 | Complete | 2026-03-11 |
-| 5. Terminal Output | 0/3 | In progress | - |
+| 5. Terminal Output | 3/3 | Complete | 2026-03-11 |
 | 6. Security Analysis | 0/TBD | Not started | - |
 | 7. Output Formats | 0/TBD | Not started | - |
 | 8. Performance Optimization | 0/TBD | Not started | - |

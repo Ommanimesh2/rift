@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 5 — Terminal Output
+**Current focus:** Phase 6 — Security Analysis
 
 ## Current Position
 
-Phase: 5 of 9 (Terminal Output)
-Plan: 0 of TBD in current phase
-Status: Phase 4 complete, ready for Phase 5
-Last activity: 2026-03-11 — Phase 4 complete (04-01 TDD, 04-02 CLI wiring)
+Phase: 5 of 9 complete (Terminal Output)
+Plan: 3/3 in Phase 5 complete
+Status: Phase 5 complete, ready for Phase 6
+Last activity: 2026-03-11 — Phase 5 complete (05-01 TDD, 05-02 lipgloss+CLI, 05-03 TDD+wiring)
 
-Progress: █████░░░░░ 44%
+Progress: ██████░░░░ 56%
 
 ## Performance Metrics
 
@@ -31,6 +31,7 @@ Progress: █████░░░░░ 44%
 | 2. Image Source Access | 2 | ~15 min | ~8 min |
 | 3. File Tree Engine | 3 | ~30 min | ~10 min |
 | 4. Diff Engine | 2 | ~5 min | ~3 min |
+| 5. Terminal Output | 3 | ~30 min | ~10 min |
 
 **Recent Trend:**
 - Last 5 plans: 03-01 (15 min), 03-02 (5 min), 03-03 (10 min), 04-01 (3 min), 04-02 (1 min)
@@ -57,6 +58,9 @@ Recent decisions affecting current work:
 - **Diff package in internal/diff/** — separate from tree package; clean boundary between tree construction and comparison
 - **DiffEntry has per-attribute change flags** — ContentChanged, ModeChanged, UIDChanged, GIDChanged, LinkTargetChanged, TypeChanged for granular diff reporting
 - **formatBytes duplicated in diff package** — tree.formatBytes is unexported; diff package has its own copy (same logic)
+- **output.FormatBytes is the single exported version** — replaces the three duplicated unexported copies; lipgloss renderer and layer formatter both reuse it
+- **RenderTerminal delegates to RenderTerminalWithLayers(nil)** — backward compatible; nil layerSummary skips the layer section cleanly
+- **CompareLayers errors are non-fatal in CLI** — logged to stderr as warning; diff output never blocked by layer inspection failure
 
 ### Deferred Issues
 
@@ -69,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 4 complete — DiffEntry/DiffResult types, Diff function with 19 tests, CLI prints diff summary
-Resume file: .planning/phases/04-diff-engine/04-02-SUMMARY.md
+Stopped at: Phase 5 complete — output package with FormatBytes/FormatEntry/FormatSummary/Render, lipgloss terminal renderer, layer comparison with CompareLayers/FormatLayerSummary, full CLI integration
+Resume file: .planning/phases/05-terminal-output/05-03-SUMMARY.md
