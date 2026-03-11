@@ -18,7 +18,7 @@ None
 - [x] **Phase 2: Image Source Access** - go-containerregistry integration for daemon, registry, and tarball sources
 - [x] **Phase 3: File Tree Engine** - Parse tar layers into in-memory file trees, handle OCI whiteouts, squash layers
 - [x] **Phase 4: Diff Engine** - Compare two file trees, compute added/removed/modified with file metadata
-- [ ] **Phase 5: Terminal Output** - Color-coded diff with lipgloss, size impact summary, per-layer breakdown
+- [ ] **Phase 5: Terminal Output** - Color-coded diff with lipgloss, size impact summary, per-layer breakdown (3 plans)
 - [ ] **Phase 6: Security Analysis** - SUID/SGID detection, permission changes, new executables, world-writable files
 - [ ] **Phase 7: Output Formats** - JSON and Markdown formatters for CI/CD pipelines and PR comments
 - [ ] **Phase 8: Performance Optimization** - Shared layer skip, streaming comparison, --quick manifest-only mode
@@ -71,7 +71,12 @@ Plans:
 **Goal**: Beautiful color-coded terminal diff output using lipgloss — green for added, red for removed, yellow for modified, size impact summary, per-layer breakdown view
 **Depends on**: Phase 4
 **Research**: Unlikely (lipgloss is well-documented, charmbracelet ecosystem)
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01: Diff output text formatter (TDD)
+- [ ] 05-02: lipgloss terminal styling + CLI integration
+- [ ] 05-03: Layer comparison and breakdown (TDD)
 
 ### Phase 6: Security Analysis
 **Goal**: Detect and highlight security-relevant changes — new SUID/SGID binaries, permission escalations, new executables, world-writable files. Add --security-only flag for focused security view
@@ -109,7 +114,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
 | 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
 | 4. Diff Engine | 2/2 | Complete | 2026-03-11 |
-| 5. Terminal Output | 0/TBD | Not started | - |
+| 5. Terminal Output | 0/3 | In progress | - |
 | 6. Security Analysis | 0/TBD | Not started | - |
 | 7. Output Formats | 0/TBD | Not started | - |
 | 8. Performance Optimization | 0/TBD | Not started | - |
