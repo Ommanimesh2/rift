@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/ommmishra/imgdiff/internal/security"
 )
 
 // terminal styles — defined at package level so they are initialized once.
@@ -17,6 +18,11 @@ var (
 	pathStyle     = lipgloss.NewStyle().Bold(true)
 	headerStyle   = lipgloss.NewStyle().Bold(true).Underline(true)
 	dimStyle      = lipgloss.NewStyle().Faint(true)
+
+	// Security section styles.
+	securityHeaderStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214")) // amber/orange
+	securityRedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))              // red for SUID/SGID
+	securityYellowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))              // yellow for others
 )
 
 // RenderLayerSection renders a LayerSummary as a dim-styled block for display
@@ -46,7 +52,20 @@ func RenderTerminal(result *diff.DiffResult, image1Name, image2Name string) stri
 
 // RenderTerminalWithLayers is like RenderTerminal but includes an optional
 // layer breakdown section when layerSummary is non-nil.
+// It delegates to RenderTerminalWithSecurity with nil events, keeping
+// backward compatibility.
 func RenderTerminalWithLayers(result *diff.DiffResult, image1Name, image2Name string, layerSummary *LayerSummary) string {
+	return RenderTerminalWithSecurity(result, image1Name, image2Name, layerSummary, nil)
+}
+
+// RenderTerminalWithSecurity is like RenderTerminalWithLayers but also renders
+// an optional security findings section when events is non-empty.
+//
+// If events is nil or empty the output is identical to RenderTerminalWithLayers.
+// When events are present they are appended after the diff entries and before
+// the summary, styled with lipgloss colors (red for SUID/SGID, yellow for
+// others).
+func RenderTerminalWithSecurity(result *diff.DiffResult, image1Name, image2Name string, layerSummary *LayerSummary, events []security.SecurityEvent) string {
 	var sb strings.Builder
 
 	// Header
@@ -72,9 +91,40 @@ func RenderTerminalWithLayers(result *diff.DiffResult, image1Name, image2Name st
 		sb.WriteByte('\n')
 	}
 
+	// Security findings section (optional)
+	if len(events) > 0 {
+		sb.WriteString(renderSecuritySection(events))
+		sb.WriteByte('\n')
+	}
+
 	// Summary
 	sb.WriteString(renderSummary(result))
 	sb.WriteByte('\n')
+
+	return sb.String()
+}
+
+// renderSecuritySection produces a styled security findings block from the
+// given events slice. It is only called when events is non-empty.
+func renderSecuritySection(events []security.SecurityEvent) string {
+	var sb strings.Builder
+
+	title := fmt.Sprintf("Security Findings (%d)", len(events))
+	sb.WriteString(securityHeaderStyle.Render(title))
+	sb.WriteByte('\n')
+	sb.WriteString(securityHeaderStyle.Render(strings.Repeat("━", 24)))
+	sb.WriteByte('\n')
+
+	for _, ev := range events {
+		line := FormatSecurityEvent(ev)
+		switch ev.Kind {
+		case security.KindNewSUID, security.KindNewSGID, security.KindSUIDAdded, security.KindSGIDAdded:
+			sb.WriteString(securityRedStyle.Render(line))
+		default:
+			sb.WriteString(securityYellowStyle.Render(line))
+		}
+		sb.WriteByte('\n')
+	}
 
 	return sb.String()
 }

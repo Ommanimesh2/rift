@@ -7,6 +7,7 @@ import (
 
 	"github.com/ommmishra/imgdiff/internal/diff"
 	"github.com/ommmishra/imgdiff/internal/output"
+	"github.com/ommmishra/imgdiff/internal/security"
 	"github.com/ommmishra/imgdiff/internal/source"
 	"github.com/ommmishra/imgdiff/internal/tree"
 	"github.com/spf13/cobra"
@@ -86,13 +87,37 @@ Image sources supported:
 			layerSummary = nil
 		}
 
+		// Run security analysis (pure function, always succeeds).
+		events := security.Analyze(result)
+
+		// Handle --security-only flag.
+		if flags.securityOnly {
+			if len(events) == 0 {
+				fmt.Println("No security findings.")
+				return nil
+			}
+			// Build a set of paths that have security events.
+			secPaths := make(map[string]struct{}, len(events))
+			for _, ev := range events {
+				secPaths[ev.Path] = struct{}{}
+			}
+			// Filter result.Entries to only those with security events.
+			filtered := result.Entries[:0]
+			for _, entry := range result.Entries {
+				if _, ok := secPaths[entry.Path]; ok {
+					filtered = append(filtered, entry)
+				}
+			}
+			result.Entries = filtered
+		}
+
 		fmt.Println()
 		if flags.format == "terminal" {
-			rendered := output.RenderTerminalWithLayers(result, args[0], args[1], layerSummary)
+			rendered := output.RenderTerminalWithSecurity(result, args[0], args[1], layerSummary, events)
 			fmt.Print(rendered)
 		} else {
 			fmt.Fprintf(os.Stderr, "format %q not yet supported, falling back to terminal\n", flags.format)
-			rendered := output.RenderTerminalWithLayers(result, args[0], args[1], layerSummary)
+			rendered := output.RenderTerminalWithSecurity(result, args[0], args[1], layerSummary, events)
 			fmt.Print(rendered)
 		}
 

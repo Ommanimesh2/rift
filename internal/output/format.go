@@ -8,7 +8,49 @@ import (
 	"strings"
 
 	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/ommmishra/imgdiff/internal/security"
 )
+
+// securityKindLabel returns the display label for a SecurityEventKind.
+func securityKindLabel(kind security.SecurityEventKind) string {
+	switch kind {
+	case security.KindNewSUID:
+		return "SUID"
+	case security.KindNewSGID:
+		return "SGID"
+	case security.KindSUIDAdded:
+		return "SUID ADDED"
+	case security.KindSGIDAdded:
+		return "SGID ADDED"
+	case security.KindNewExecutable:
+		return "NEW EXEC"
+	case security.KindWorldWritable:
+		return "WORLD-WRITABLE"
+	case security.KindPermEscalation:
+		return "PERM ESCALATION"
+	default:
+		return string(kind)
+	}
+}
+
+// FormatSecurityEvent renders a single SecurityEvent as a one-line string.
+//
+// Format for Added events (Before == 0):
+//
+//	"  [KIND_LABEL] path"
+//
+// Format for Modified events with mode changes:
+//
+//	"  [KIND_LABEL] path  (0NNN → 0MMM)"
+func FormatSecurityEvent(event security.SecurityEvent) string {
+	label := securityKindLabel(event.Kind)
+	if event.Before == 0 {
+		return fmt.Sprintf("  [%s] %s", label, event.Path)
+	}
+	before := fmt.Sprintf("%04o", event.Before)
+	after := fmt.Sprintf("%04o", event.After)
+	return fmt.Sprintf("  [%s] %s  (%s → %s)", label, event.Path, before, after)
+}
 
 // FormatBytes converts a byte count to a human-readable string using binary
 // SI suffixes (KB, MB, GB). Values below 1 KB are rendered as "N bytes".
