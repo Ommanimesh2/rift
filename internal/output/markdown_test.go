@@ -179,10 +179,10 @@ func TestFormatMarkdown_SecurityEvent_AddedNoMode(t *testing.T) {
 	if !strings.Contains(got, "`usr/bin/sudo`") {
 		t.Errorf("expected backtick-wrapped path, got:\n%s", got)
 	}
-	// Mode column is empty (no backtick-formatted mode string)
-	// Before == 0 → mode column should be empty (no "→" arrow)
-	if strings.Contains(got, "→") {
-		t.Errorf("expected empty mode column for Added event (Before==0), but found '→' in:\n%s", got)
+	// Mode column is empty — the security table row should not contain a
+	// backtick-formatted octal transition (e.g. `00755 → 04755`).
+	if strings.Contains(got, "`0") {
+		t.Errorf("expected empty mode column for Added event (Before==0), but found backtick-octal in:\n%s", got)
 	}
 }
 
