@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/ommmishra/imgdiff/internal/output"
 	"github.com/ommmishra/imgdiff/internal/source"
 	"github.com/ommmishra/imgdiff/internal/tree"
 	"github.com/spf13/cobra"
@@ -76,9 +77,17 @@ Image sources supported:
 		}
 		fmt.Printf("  Tree: %s\n", tree2)
 
-		fmt.Println()
 		result := diff.Diff(tree1, tree2)
-		fmt.Printf("Diff: %s\n", result)
+
+		fmt.Println()
+		if flags.format == "terminal" {
+			rendered := output.RenderTerminal(result, args[0], args[1])
+			fmt.Print(rendered)
+		} else {
+			fmt.Fprintf(os.Stderr, "format %q not yet supported, falling back to terminal\n", flags.format)
+			rendered := output.RenderTerminal(result, args[0], args[1])
+			fmt.Print(rendered)
+		}
 
 		return nil
 	},
