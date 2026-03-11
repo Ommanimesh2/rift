@@ -15,7 +15,7 @@ None
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Project Foundation & CLI** - Go module, cobra CLI skeleton, command parsing, project layout
-- [ ] **Phase 2: Image Source Access** - go-containerregistry integration for daemon, registry, and tarball sources
+- [x] **Phase 2: Image Source Access** - go-containerregistry integration for daemon, registry, and tarball sources
 - [ ] **Phase 3: File Tree Engine** - Parse tar layers into in-memory file trees, handle OCI whiteouts, squash layers
 - [ ] **Phase 4: Diff Engine** - Compare two file trees, compute added/removed/modified with file metadata
 - [ ] **Phase 5: Terminal Output** - Color-coded diff with lipgloss, size impact summary, per-layer breakdown
@@ -40,7 +40,11 @@ Plans:
 **Depends on**: Phase 1
 **Research**: Likely (go-containerregistry API for different image sources)
 **Research topics**: go-containerregistry v1.Image interface, daemon vs remote vs tarball access patterns, authentication for private registries
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 02-01: Source abstraction and providers (remote, daemon, tarball)
+- [x] 02-02: CLI integration — wire source.Open() into root command
 
 ### Phase 3: File Tree Engine
 **Goal**: Build complete squashed file trees from image layers — parse tar entries, track file metadata (permissions, size, uid/gid), handle OCI whiteout files for layer deletions
@@ -93,7 +97,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Project Foundation & CLI | 1/1 | Complete | 2026-03-11 |
-| 2. Image Source Access | 0/TBD | Not started | - |
+| 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
 | 3. File Tree Engine | 0/TBD | Not started | - |
 | 4. Diff Engine | 0/TBD | Not started | - |
 | 5. Terminal Output | 0/TBD | Not started | - |
