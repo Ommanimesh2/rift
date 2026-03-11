@@ -237,7 +237,9 @@ func TestFormatJSON_ModifiedWithFlags(t *testing.T) {
 }
 
 // TestFormatJSON_ModifiedNoFlags verifies that a Modified entry with no flags
-// set omits the "changes" key entirely from the JSON output (omitempty).
+// set omits the "changes" field from the ChangeEntry (omitempty behaviour).
+// The top-level "changes" array key is always present; only the per-entry
+// "changes" sub-field is omitted when the slice is empty.
 func TestFormatJSON_ModifiedNoFlags(t *testing.T) {
 	beforeNode := &tree.FileNode{Path: "etc/hosts", Size: 100, Mode: 0644}
 	afterNode := &tree.FileNode{Path: "etc/hosts", Size: 100, Mode: 0644}
@@ -259,10 +261,19 @@ func TestFormatJSON_ModifiedNoFlags(t *testing.T) {
 		t.Fatalf("FormatJSON error: %v", err)
 	}
 
-	// Verify "changes" key is absent in the raw JSON
-	raw := string(got)
-	if containsSubstr(raw, `"changes"`) {
-		t.Errorf("expected no 'changes' key when flags are empty, got: %s", raw)
+	var report output.DiffReport
+	if err := json.Unmarshal(got, &report); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	if len(report.Changes) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(report.Changes))
+	}
+
+	// The ChangeEntry.Changes field must be nil (omitempty omits it from JSON).
+	c := report.Changes[0]
+	if c.Changes != nil {
+		t.Errorf("ChangeEntry.Changes should be nil for Modified entry with no flags, got: %v", c.Changes)
 	}
 }
 
