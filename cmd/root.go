@@ -59,24 +59,17 @@ Image sources supported:
 			return fmt.Errorf("failed to open image %q: %w", args[1], err)
 		}
 
-		// Print confirmation with source type
-		fmt.Printf("Opened %s (%s)\n", args[0], source.DetectSourceType(args[0]))
-
 		// Build file tree for first image.
 		tree1, err := tree.BuildFromImage(img1)
 		if err != nil {
 			return fmt.Errorf("failed to build file tree for %q: %w", args[0], err)
 		}
-		fmt.Printf("  Tree: %s\n", tree1)
-
-		fmt.Printf("Opened %s (%s)\n", args[1], source.DetectSourceType(args[1]))
 
 		// Build file tree for second image.
 		tree2, err := tree.BuildFromImage(img2)
 		if err != nil {
 			return fmt.Errorf("failed to build file tree for %q: %w", args[1], err)
 		}
-		fmt.Printf("  Tree: %s\n", tree2)
 
 		result := diff.Diff(tree1, tree2)
 
@@ -111,14 +104,20 @@ Image sources supported:
 			result.Entries = filtered
 		}
 
-		fmt.Println()
-		if flags.format == "terminal" {
+		switch flags.format {
+		case "terminal", "":
 			rendered := output.RenderTerminalWithSecurity(result, args[0], args[1], layerSummary, events)
 			fmt.Print(rendered)
-		} else {
-			fmt.Fprintf(os.Stderr, "format %q not yet supported, falling back to terminal\n", flags.format)
-			rendered := output.RenderTerminalWithSecurity(result, args[0], args[1], layerSummary, events)
-			fmt.Print(rendered)
+		case "json":
+			data, err := output.FormatJSON(result, args[0], args[1], events)
+			if err != nil {
+				return fmt.Errorf("json formatting failed: %w", err)
+			}
+			fmt.Printf("%s\n", data)
+		case "markdown":
+			fmt.Print(output.FormatMarkdown(result, args[0], args[1], events))
+		default:
+			return fmt.Errorf("unknown format %q: supported formats are terminal, json, markdown", flags.format)
 		}
 
 		return nil
