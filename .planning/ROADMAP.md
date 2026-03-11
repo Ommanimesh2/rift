@@ -61,7 +61,11 @@ Plans:
 **Goal**: Compare two file trees and produce a structured diff result with added/removed/modified files including size deltas, permission changes, and content hash comparison
 **Depends on**: Phase 3
 **Research**: Unlikely (internal algorithm, pure Go data structures)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 04-01: DiffEntry/DiffResult types + Diff function (TDD)
+- [ ] 04-02: CLI integration — wire Diff into root command with summary output
 
 ### Phase 5: Terminal Output
 **Goal**: Beautiful color-coded terminal diff output using lipgloss — green for added, red for removed, yellow for modified, size impact summary, per-layer breakdown view
@@ -104,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Project Foundation & CLI | 1/1 | Complete | 2026-03-11 |
 | 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
 | 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
-| 4. Diff Engine | 0/TBD | Not started | - |
+| 4. Diff Engine | 0/2 | In progress | - |
 | 5. Terminal Output | 0/TBD | Not started | - |
 | 6. Security Analysis | 0/TBD | Not started | - |
 | 7. Output Formats | 0/TBD | Not started | - |
