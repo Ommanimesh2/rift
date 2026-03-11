@@ -53,9 +53,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: FileNode model + single layer tar parsing (TDD)
-- [ ] 03-02: Whiteout handling + multi-layer squashing (TDD)
-- [ ] 03-03: BuildFromImage + CLI integration
+- [x] 03-01: FileNode model + single layer tar parsing (TDD)
+- [x] 03-02: Whiteout handling + multi-layer squashing (TDD)
+- [x] 03-03: BuildFromImage + CLI integration
 
 ### Phase 4: Diff Engine
 **Goal**: Compare two file trees and produce a structured diff result with added/removed/modified files including size deltas, permission changes, and content hash comparison
@@ -103,7 +103,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|---------------|--------|-----------|
 | 1. Project Foundation & CLI | 1/1 | Complete | 2026-03-11 |
 | 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
-| 3. File Tree Engine | 0/3 | In progress | - |
+| 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
 | 4. Diff Engine | 0/TBD | Not started | - |
 | 5. Terminal Output | 0/TBD | Not started | - |
 | 6. Security Analysis | 0/TBD | Not started | - |
