@@ -322,3 +322,210 @@ func mapKeys(m map[string]*FileNode) []string {
 	}
 	return keys
 }
+
+// --- Tests for BuildTree (whiteout handling and multi-layer squashing) ---
+
+func TestBuildTree_TwoLayersNoWhiteout(t *testing.T) {
+	// Layer 1: base with two files.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "etc/config.txt", content: []byte("v1 config"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "bin/tool", content: []byte("v1 binary"), mode: 0755, typeflag: tar.TypeReg},
+	})
+	// Layer 2: overrides config.txt, adds new file.
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "etc/config.txt", content: []byte("v2 config updated"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "var/log/app.log", content: []byte("log data"), mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	// All three distinct paths should be present.
+	if ft.Size() != 3 {
+		t.Errorf("expected 3 entries, got %d: %v", ft.Size(), treeKeys(ft))
+	}
+	// Layer 2 version of config.txt should win (larger content).
+	node := ft.Get("etc/config.txt")
+	if node == nil {
+		t.Fatal("expected etc/config.txt in tree")
+	}
+	if node.Size != 17 {
+		t.Errorf("expected layer2 size 17, got %d", node.Size)
+	}
+	if ft.Get("bin/tool") == nil {
+		t.Error("bin/tool from layer1 should remain")
+	}
+	if ft.Get("var/log/app.log") == nil {
+		t.Error("var/log/app.log from layer2 should be present")
+	}
+}
+
+func TestBuildTree_FileWhiteout(t *testing.T) {
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "etc/foo.txt", content: []byte("to be deleted"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "etc/keep.txt", content: []byte("stays"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	// Layer 2 deletes foo.txt via whiteout marker.
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "etc/.wh.foo.txt", content: nil, mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	if ft.Get("etc/foo.txt") != nil {
+		t.Error("etc/foo.txt should have been whited out")
+	}
+	if ft.Get("etc/keep.txt") == nil {
+		t.Error("etc/keep.txt should still be present")
+	}
+	// Whiteout marker itself should NOT be in the tree.
+	if ft.Get("etc/.wh.foo.txt") != nil {
+		t.Error("whiteout marker etc/.wh.foo.txt must not appear in final tree")
+	}
+}
+
+func TestBuildTree_OpaqueWhiteout(t *testing.T) {
+	// Layer 1 populates a directory with several files.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "app/", mode: 0755, typeflag: tar.TypeDir},
+		{path: "app/old.txt", content: []byte("old"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "app/other.txt", content: []byte("other"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "keep.txt", content: []byte("root file"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	// Layer 2 has an opaque whiteout for "app/" and adds one new file inside.
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "app/", mode: 0755, typeflag: tar.TypeDir},
+		{path: "app/.wh..wh..opq", content: nil, mode: 0644, typeflag: tar.TypeReg},
+		{path: "app/new.txt", content: []byte("new content"), mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	// Old files inside app/ must be gone.
+	if ft.Get("app/old.txt") != nil {
+		t.Error("app/old.txt should have been removed by opaque whiteout")
+	}
+	if ft.Get("app/other.txt") != nil {
+		t.Error("app/other.txt should have been removed by opaque whiteout")
+	}
+	// New file from layer 2 inside app/ must be present.
+	if ft.Get("app/new.txt") == nil {
+		t.Error("app/new.txt from layer2 should be present after opaque whiteout")
+	}
+	// Opaque whiteout marker must not appear.
+	if ft.Get("app/.wh..wh..opq") != nil {
+		t.Error("opaque whiteout marker must not appear in final tree")
+	}
+	// Root-level file must be untouched.
+	if ft.Get("keep.txt") == nil {
+		t.Error("keep.txt at root should not be affected by opaque whiteout of app/")
+	}
+}
+
+func TestBuildTree_NestedWhiteout(t *testing.T) {
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "a/b/c.txt", content: []byte("deep file"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "a/b/.wh.c.txt", content: nil, mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	if ft.Get("a/b/c.txt") != nil {
+		t.Error("a/b/c.txt should have been removed by nested whiteout")
+	}
+}
+
+func TestBuildTree_WhiteoutNonExistentFile(t *testing.T) {
+	// Whiteout for a file that never existed — should not error.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "existing.txt", content: []byte("here"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: ".wh.ghost.txt", content: nil, mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2})
+	if err != nil {
+		t.Fatalf("BuildTree should not error on whiteout of non-existent file: %v", err)
+	}
+	if ft.Get("existing.txt") == nil {
+		t.Error("existing.txt should still be present")
+	}
+	if ft.Get(".wh.ghost.txt") != nil {
+		t.Error("whiteout marker must not appear in tree")
+	}
+}
+
+func TestBuildTree_LayerOrderMatters(t *testing.T) {
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "file.txt", content: []byte("from layer1"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "file.txt", content: []byte("from layer2 overrides"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer3 := makeFakeLayer([]tarEntry{
+		{path: "file.txt", content: []byte("layer3 wins"), mode: 0755, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer1, layer2, layer3})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	node := ft.Get("file.txt")
+	if node == nil {
+		t.Fatal("file.txt should be in tree")
+	}
+	// Layer 3 is the top layer: its size and mode should win.
+	if node.Size != int64(len("layer3 wins")) {
+		t.Errorf("expected layer3 size %d, got %d", len("layer3 wins"), node.Size)
+	}
+	if node.Mode != os.FileMode(0755) {
+		t.Errorf("expected layer3 mode 0755, got %v", node.Mode)
+	}
+}
+
+func TestBuildTree_FileTreeAccessors(t *testing.T) {
+	layer := makeFakeLayer([]tarEntry{
+		{path: "a.txt", content: []byte("a"), mode: 0644, typeflag: tar.TypeReg},
+		{path: "b/", mode: 0755, typeflag: tar.TypeDir},
+		{path: "b/c.txt", content: []byte("c"), mode: 0644, typeflag: tar.TypeReg},
+	})
+
+	ft, err := BuildTree([]v1.Layer{layer})
+	if err != nil {
+		t.Fatalf("BuildTree error: %v", err)
+	}
+
+	if ft.Size() != 3 {
+		t.Errorf("Size(): expected 3, got %d", ft.Size())
+	}
+	if ft.Get("a.txt") == nil {
+		t.Error("Get(a.txt) should return non-nil")
+	}
+	if ft.Get("nonexistent") != nil {
+		t.Error("Get(nonexistent) should return nil")
+	}
+}
+
+// treeKeys returns a slice of keys from the FileTree, for test error messages.
+func treeKeys(ft *FileTree) []string {
+	keys := make([]string, 0, len(ft.Entries))
+	for k := range ft.Entries {
+		keys = append(keys, k)
+	}
+	return keys
+}
