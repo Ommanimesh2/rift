@@ -5,16 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** v1.0 shipped — planning v1.1 Distribution
+**Current focus:** v1.1 Demo — demo GIF + README polish
 
 ## Current Position
 
-Milestone: v1.0 MVP — SHIPPED 2026-03-12
-Phase: 9/9 complete, all plans done
-Status: v1.0 complete — ready to plan v1.1
-Last activity: 2026-03-12 — v1.0 milestone complete, README written, git tag v1.0
+Milestone: v1.1 Demo — IN PROGRESS
+Phase: 10 of 11 (vhs Demo GIF)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-12 — Milestone v1.1 Demo created
 
-Progress: ██████████ 100% (v1.0)
+Progress: ░░░░░░░░░░ 0% (v1.1)
 
 ## Performance Metrics
 
@@ -74,8 +75,13 @@ None yet.
 
 None yet.
 
+### Roadmap Evolution
+
+- Milestone v1.0 MVP shipped: full-featured container image diff tool, 9 phases (Phase 1–9)
+- Milestone v1.1 Demo created: demo GIF + README polish, 2 phases (Phase 10–11)
+
 ## Session Continuity
 
 Last session: 2026-03-12
-Stopped at: v1.0 milestone complete — README written, MILESTONES.md created, PROJECT.md evolved, ROADMAP.md reorganized, v1.0 tagged
-Resume with: /gsd:discuss-milestone to plan v1.1 Distribution
+Stopped at: Milestone v1.1 Demo initialization
+Resume file: None

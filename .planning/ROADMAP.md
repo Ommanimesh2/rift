@@ -7,7 +7,7 @@ Build a beautiful, file-level, security-aware container image diff tool in Go. S
 ## Milestones
 
 - ✅ **[v1.0 MVP](milestones/v1.0-ROADMAP.md)** — Phases 1–9 (shipped 2026-03-12)
-- 📋 **v1.1 Distribution** — goreleaser, GitHub Action, demo GIF (planned)
+- 🚧 **v1.1 Demo** — Phases 10–11 (in progress)
 
 ## Domain Expertise
 
@@ -28,6 +28,8 @@ None
 - [x] **Phase 7: Output Formats** - JSON and Markdown formatters for CI/CD pipelines and PR comments
 - [x] **Phase 8: Performance Optimization** - Shared layer skip, streaming comparison, --quick manifest-only mode
 - [x] **Phase 9: CI/CD & Distribution** - Exit codes, multi-arch --platform flag, registry auth support
+- [ ] **Phase 10: vhs Demo GIF** - Write vhs tape script, produce demo.gif covering file diff, security, and JSON output scenes
+- [ ] **Phase 11: README Polish** - Embed demo.gif, add badges, tighten copy for first-impression impact
 
 ## Phase Details
 
@@ -117,19 +119,48 @@ Plans:
 **Research**: Unlikely (exit codes, flag handling — standard Go/cobra patterns)
 **Plans**: TBD
 
+---
+
+### 🚧 v1.1 Demo (In Progress)
+
+**Milestone Goal:** Make the first impression land — produce a demo GIF and polish the README so the tool looks as good as it works.
+
+#### Phase 10: vhs Demo GIF
+
+**Goal**: Write a vhs tape script and produce a compelling demo.gif (~30–60s) covering three scenes: nginx:1.24→1.25 file diff with layer breakdown, ubuntu:22.04→24.04 security events, and a JSON output snippet for CI/CD value
+**Depends on**: Phase 9 (v1.0 complete)
+**Research**: Likely (vhs is new tooling — need to verify install, tape syntax, and GIF output options)
+**Research topics**: charmbracelet/vhs tape syntax, install via Homebrew or Go, deterministic recording options, GIF size optimization, font/theme config for screenshots
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: TBD (run /gsd:plan-phase 10 to break down)
+
+#### Phase 11: README Polish
+
+**Goal**: Embed demo.gif at the top of README.md, add badges (Go version, license), tighten tagline and install/CI-CD copy for maximum first-scroll impact
+**Depends on**: Phase 10
+**Research**: Unlikely (Markdown and badge patterns — established conventions)
+**Plans**: TBD
+
+Plans:
+- [ ] 11-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
 
-| Phase | Plans Complete | Status | Completed |
-|-------|---------------|--------|-----------|
-| 1. Project Foundation & CLI | 1/1 | Complete | 2026-03-11 |
-| 2. Image Source Access | 2/2 | Complete | 2026-03-11 |
-| 3. File Tree Engine | 3/3 | Complete | 2026-03-11 |
-| 4. Diff Engine | 2/2 | Complete | 2026-03-11 |
-| 5. Terminal Output | 3/3 | Complete | 2026-03-11 |
-| 6. Security Analysis | 2/2 | Complete | 2026-03-11 |
-| 7. Output Formats | 3/3 | Complete | 2026-03-11 |
-| 8. Performance Optimization | 3/3 | Complete | 2026-03-12 |
-| 9. CI/CD & Distribution | 2/2 | Complete | 2026-03-12 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|---------------|--------|-----------|
+| 1. Project Foundation & CLI | v1.0 | 1/1 | Complete | 2026-03-11 |
+| 2. Image Source Access | v1.0 | 2/2 | Complete | 2026-03-11 |
+| 3. File Tree Engine | v1.0 | 3/3 | Complete | 2026-03-11 |
+| 4. Diff Engine | v1.0 | 2/2 | Complete | 2026-03-11 |
+| 5. Terminal Output | v1.0 | 3/3 | Complete | 2026-03-11 |
+| 6. Security Analysis | v1.0 | 2/2 | Complete | 2026-03-11 |
+| 7. Output Formats | v1.0 | 3/3 | Complete | 2026-03-11 |
+| 8. Performance Optimization | v1.0 | 3/3 | Complete | 2026-03-12 |
+| 9. CI/CD & Distribution | v1.0 | 2/2 | Complete | 2026-03-12 |
+| 10. vhs Demo GIF | v1.1 | 0/? | Not started | - |
+| 11. README Polish | v1.1 | 0/? | Not started | - |
