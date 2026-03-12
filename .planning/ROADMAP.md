@@ -28,7 +28,7 @@ None
 - [x] **Phase 7: Output Formats** - JSON and Markdown formatters for CI/CD pipelines and PR comments
 - [x] **Phase 8: Performance Optimization** - Shared layer skip, streaming comparison, --quick manifest-only mode
 - [x] **Phase 9: CI/CD & Distribution** - Exit codes, multi-arch --platform flag, registry auth support
-- [ ] **Phase 10: vhs Demo GIF** - Write vhs tape script, produce demo.gif covering file diff, security, and JSON output scenes
+- [x] **Phase 10: vhs Demo GIF** - Write vhs tape script, produce demo.gif covering file diff, security, and JSON output scenes
 - [ ] **Phase 11: README Polish** - Embed demo.gif, add badges, tighten copy for first-impression impact
 
 ## Phase Details
@@ -162,5 +162,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Output Formats | v1.0 | 3/3 | Complete | 2026-03-11 |
 | 8. Performance Optimization | v1.0 | 3/3 | Complete | 2026-03-12 |
 | 9. CI/CD & Distribution | v1.0 | 2/2 | Complete | 2026-03-12 |
-| 10. vhs Demo GIF | v1.1 | 0/? | Not started | - |
+| 10. vhs Demo GIF | v1.1 | 2/2 | Complete | 2026-03-12 |
 | 11. README Polish | v1.1 | 0/? | Not started | - |

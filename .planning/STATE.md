@@ -10,10 +10,10 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 ## Current Position
 
 Milestone: v1.1 Demo — IN PROGRESS
-Phase: 10 of 11 (vhs Demo GIF)
+Phase: 11 of 11 (README Polish)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-03-12 — Milestone v1.1 Demo created
+Last activity: 2026-03-12 — Phase 10 complete, demo.gif produced and committed
 
 Progress: ░░░░░░░░░░ 0% (v1.1)
 
