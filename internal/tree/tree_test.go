@@ -3,6 +3,7 @@ package tree
 import (
 	"archive/tar"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -528,4 +529,259 @@ func treeKeys(ft *FileTree) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// --- Helpers for IdenticalLeadingLayers and BuildFromImageSkipFirst tests ---
+
+// fakeDiffIDLayer is a v1.Layer whose DiffID returns a configurable hash.
+// Used to test IdenticalLeadingLayers without any tar/network I/O.
+type fakeDiffIDLayer struct {
+	diffID v1.Hash
+	errDiffID bool
+	// tarData is optional — used when Uncompressed() must work for BuildFromImageSkipFirst tests.
+	tarData []byte
+}
+
+func (f *fakeDiffIDLayer) Digest() (v1.Hash, error)            { return v1.Hash{}, nil }
+func (f *fakeDiffIDLayer) DiffID() (v1.Hash, error) {
+	if f.errDiffID {
+		return v1.Hash{}, fmt.Errorf("simulated DiffID error")
+	}
+	return f.diffID, nil
+}
+func (f *fakeDiffIDLayer) Compressed() (io.ReadCloser, error)  { return nil, nil }
+func (f *fakeDiffIDLayer) Size() (int64, error)                { return int64(len(f.tarData)), nil }
+func (f *fakeDiffIDLayer) MediaType() (types.MediaType, error) { return "", nil }
+func (f *fakeDiffIDLayer) Uncompressed() (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewReader(f.tarData)), nil
+}
+
+// fakeImageWithLayers is a minimal v1.Image whose Layers() returns a fixed slice.
+// All other v1.Image methods return errors (they are not needed for these tests).
+type fakeImageWithLayers struct {
+	layers []v1.Layer
+}
+
+func (f *fakeImageWithLayers) Layers() ([]v1.Layer, error) {
+	return f.layers, nil
+}
+
+// Satisfy the v1.Image interface — all unused methods return errors.
+func (f *fakeImageWithLayers) MediaType() (types.MediaType, error)  { return "", fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) Size() (int64, error)                  { return 0, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) ConfigName() (v1.Hash, error)          { return v1.Hash{}, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) ConfigFile() (*v1.ConfigFile, error)   { return nil, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) RawConfigFile() ([]byte, error)        { return nil, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) Digest() (v1.Hash, error)              { return v1.Hash{}, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) Manifest() (*v1.Manifest, error)       { return nil, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) RawManifest() ([]byte, error)          { return nil, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) LayerByDigest(v1.Hash) (v1.Layer, error) { return nil, fmt.Errorf("not implemented") }
+func (f *fakeImageWithLayers) LayerByDiffID(v1.Hash) (v1.Layer, error) { return nil, fmt.Errorf("not implemented") }
+
+// hashFor returns a v1.Hash with algorithm "sha256" and the given hex string.
+// It is used to construct deterministic DiffID values in tests.
+func hashFor(hex string) v1.Hash {
+	return v1.Hash{Algorithm: "sha256", Hex: hex}
+}
+
+// makeImageWithDiffIDs creates a fakeImageWithLayers from a slice of hex strings.
+// Each hex string becomes the DiffID for the corresponding layer.
+func makeImageWithDiffIDs(hexes []string) *fakeImageWithLayers {
+	layers := make([]v1.Layer, len(hexes))
+	for i, h := range hexes {
+		layers[i] = &fakeDiffIDLayer{diffID: hashFor(h)}
+	}
+	return &fakeImageWithLayers{layers: layers}
+}
+
+// --- Tests for IdenticalLeadingLayers ---
+
+func TestIdenticalLeadingLayers(t *testing.T) {
+	tests := []struct {
+		name    string
+		img1IDs []string
+		img2IDs []string
+		want    int
+	}{
+		{
+			name:    "both images empty",
+			img1IDs: []string{},
+			img2IDs: []string{},
+			want:    0,
+		},
+		{
+			name:    "all layers identical single",
+			img1IDs: []string{"aaa"},
+			img2IDs: []string{"aaa"},
+			want:    1,
+		},
+		{
+			name:    "all layers identical multiple",
+			img1IDs: []string{"aaa", "bbb", "ccc"},
+			img2IDs: []string{"aaa", "bbb", "ccc"},
+			want:    3,
+		},
+		{
+			name:    "no layers identical",
+			img1IDs: []string{"aaa", "bbb"},
+			img2IDs: []string{"xxx", "yyy"},
+			want:    0,
+		},
+		{
+			name:    "partial prefix first two of four identical",
+			img1IDs: []string{"aaa", "bbb", "ccc", "ddd"},
+			img2IDs: []string{"aaa", "bbb", "xxx", "yyy"},
+			want:    2,
+		},
+		{
+			name:    "prefix only img1=[A,B,X] img2=[A,B,Y]",
+			img1IDs: []string{"aaa", "bbb", "xxx"},
+			img2IDs: []string{"aaa", "bbb", "yyy"},
+			want:    2,
+		},
+		{
+			name:    "non-contiguous shared layers only prefix counted",
+			img1IDs: []string{"aaa", "xxx", "bbb"},
+			img2IDs: []string{"aaa", "yyy", "bbb"},
+			want:    1,
+		},
+		{
+			name:    "different length with full prefix overlap img1 shorter",
+			img1IDs: []string{"aaa", "bbb"},
+			img2IDs: []string{"aaa", "bbb", "ccc"},
+			want:    2,
+		},
+		{
+			name:    "different length with full prefix overlap img2 shorter",
+			img1IDs: []string{"aaa", "bbb", "ccc"},
+			img2IDs: []string{"aaa", "bbb"},
+			want:    2,
+		},
+		{
+			name:    "single layer mismatch",
+			img1IDs: []string{"aaa"},
+			img2IDs: []string{"bbb"},
+			want:    0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			img1 := makeImageWithDiffIDs(tc.img1IDs)
+			img2 := makeImageWithDiffIDs(tc.img2IDs)
+
+			got, err := IdenticalLeadingLayers(img1, img2)
+			if err != nil {
+				t.Fatalf("IdenticalLeadingLayers returned unexpected error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("IdenticalLeadingLayers = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIdenticalLeadingLayers_DiffIDError(t *testing.T) {
+	// Layer at index 1 will return a DiffID error.
+	// Expectation: return 1 (the count before the error), nil (non-fatal).
+	layers1 := []v1.Layer{
+		&fakeDiffIDLayer{diffID: hashFor("aaa")},
+		&fakeDiffIDLayer{diffID: hashFor("bbb"), errDiffID: true},
+		&fakeDiffIDLayer{diffID: hashFor("ccc")},
+	}
+	layers2 := []v1.Layer{
+		&fakeDiffIDLayer{diffID: hashFor("aaa")},
+		&fakeDiffIDLayer{diffID: hashFor("bbb")},
+		&fakeDiffIDLayer{diffID: hashFor("ccc")},
+	}
+	img1 := &fakeImageWithLayers{layers: layers1}
+	img2 := &fakeImageWithLayers{layers: layers2}
+
+	got, err := IdenticalLeadingLayers(img1, img2)
+	if err != nil {
+		t.Fatalf("expected nil error on DiffID error, got: %v", err)
+	}
+	if got != 1 {
+		t.Errorf("expected 1 (layers before error), got %d", got)
+	}
+}
+
+// --- Tests for BuildFromImageSkipFirst ---
+
+func TestBuildFromImageSkipFirst_SkipZero(t *testing.T) {
+	// skipFirst=0 must produce the same result as BuildFromImage.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "base.txt", content: []byte("base"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "top.txt", content: []byte("top"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	img := &fakeImageWithLayers{layers: []v1.Layer{layer1, layer2}}
+
+	ftSkip, err := BuildFromImageSkipFirst(img, 0)
+	if err != nil {
+		t.Fatalf("BuildFromImageSkipFirst(img, 0) error: %v", err)
+	}
+	ftFull, err := BuildFromImage(img)
+	if err != nil {
+		t.Fatalf("BuildFromImage error: %v", err)
+	}
+
+	if ftSkip.Size() != ftFull.Size() {
+		t.Errorf("size mismatch: skipFirst=0 got %d, BuildFromImage got %d", ftSkip.Size(), ftFull.Size())
+	}
+	for path := range ftFull.Entries {
+		if ftSkip.Get(path) == nil {
+			t.Errorf("path %q present in BuildFromImage but missing in BuildFromImageSkipFirst(0)", path)
+		}
+	}
+}
+
+func TestBuildFromImageSkipFirst_SkipOne(t *testing.T) {
+	// A 3-layer image; skip the first layer.
+	// Files from layer 1 must be absent; files from layers 2 and 3 must be present.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "layer1_only.txt", content: []byte("l1"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer2 := makeFakeLayer([]tarEntry{
+		{path: "layer2_file.txt", content: []byte("l2"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	layer3 := makeFakeLayer([]tarEntry{
+		{path: "layer3_file.txt", content: []byte("l3"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	img := &fakeImageWithLayers{layers: []v1.Layer{layer1, layer2, layer3}}
+
+	ft, err := BuildFromImageSkipFirst(img, 1)
+	if err != nil {
+		t.Fatalf("BuildFromImageSkipFirst(img, 1) error: %v", err)
+	}
+
+	if ft.Get("layer1_only.txt") != nil {
+		t.Error("layer1_only.txt should be absent when skipFirst=1")
+	}
+	if ft.Get("layer2_file.txt") == nil {
+		t.Error("layer2_file.txt should be present when skipFirst=1")
+	}
+	if ft.Get("layer3_file.txt") == nil {
+		t.Error("layer3_file.txt should be present when skipFirst=1")
+	}
+}
+
+func TestBuildFromImageSkipFirst_SkipAll(t *testing.T) {
+	// skipFirst >= len(layers): must return an empty tree without panicking.
+	layer1 := makeFakeLayer([]tarEntry{
+		{path: "file.txt", content: []byte("data"), mode: 0644, typeflag: tar.TypeReg},
+	})
+	img := &fakeImageWithLayers{layers: []v1.Layer{layer1}}
+
+	ft, err := BuildFromImageSkipFirst(img, 5)
+	if err != nil {
+		t.Fatalf("BuildFromImageSkipFirst with skipFirst>=len(layers) error: %v", err)
+	}
+	if ft == nil {
+		t.Fatal("expected non-nil FileTree")
+	}
+	if ft.Size() != 0 {
+		t.Errorf("expected empty tree, got %d entries", ft.Size())
+	}
 }
