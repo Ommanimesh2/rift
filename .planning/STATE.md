@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-11)
+See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 9 — CI/CD & Distribution
+**Current focus:** v1.0 shipped — planning v1.1 Distribution
 
 ## Current Position
 
-Phase: 9 of 9 complete (CI/CD & Distribution)
-Plan: 2/2 in Phase 9 complete
-Status: ALL PHASES COMPLETE — project feature-complete
-Last activity: 2026-03-12 — Phase 9 complete (09-01 exitcode TDD, 09-02 CLI wiring + registry auth)
+Milestone: v1.0 MVP — SHIPPED 2026-03-12
+Phase: 9/9 complete, all plans done
+Status: v1.0 complete — ready to plan v1.1
+Last activity: 2026-03-12 — v1.0 milestone complete, README written, git tag v1.0
 
-Progress: ██████████ 100%
+Progress: ██████████ 100% (v1.0)
 
 ## Performance Metrics
 
@@ -76,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11
-Stopped at: Phase 9 complete — internal/exitcode package with ParseSizeThreshold + Evaluate (23 tests), --exit-code/--fail-on-security/--size-threshold/--username/--password CLI flags wired, os.Exit(2) for CI/CD conditions
-Resume file: .planning/phases/09-cicd-distribution/09-02-SUMMARY.md
+Last session: 2026-03-12
+Stopped at: v1.0 milestone complete — README written, MILESTONES.md created, PROJECT.md evolved, ROADMAP.md reorganized, v1.0 tagged
+Resume with: /gsd:discuss-milestone to plan v1.1 Distribution

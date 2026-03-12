@@ -4,6 +4,11 @@
 
 Build a beautiful, file-level, security-aware container image diff tool in Go. Starting from project scaffolding and CLI, through image pulling and tree construction, to a polished diff engine with security analysis, multiple output formats, and CI/CD integration. The end result is a single static binary that fills the gap left by Google's archived container-diff.
 
+## Milestones
+
+- ✅ **[v1.0 MVP](milestones/v1.0-ROADMAP.md)** — Phases 1–9 (shipped 2026-03-12)
+- 📋 **v1.1 Distribution** — goreleaser, GitHub Action, demo GIF (planned)
+
 ## Domain Expertise
 
 None
