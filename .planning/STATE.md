@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 
 ## Current Position
 
-Phase: 8 of 9 complete (Performance Optimization)
-Plan: 3/3 in Phase 8 complete
-Status: Phase 8 complete, ready for Phase 9
-Last activity: 2026-03-12 — Phase 8 complete (08-01 layer skip TDD, 08-02 FormatQuick TDD, 08-03 CLI wiring + benchmark)
+Phase: 9 of 9 complete (CI/CD & Distribution)
+Plan: 2/2 in Phase 9 complete
+Status: ALL PHASES COMPLETE — project feature-complete
+Last activity: 2026-03-12 — Phase 9 complete (09-01 exitcode TDD, 09-02 CLI wiring + registry auth)
 
-Progress: █████████░ 89%
+Progress: ██████████ 100%
 
 ## Performance Metrics
 
@@ -77,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 8 complete — IdenticalLeadingLayers + BuildFromImageSkipFirst (14 new tests), FormatQuick terminal/json/markdown (16 tests), --quick flag + layer skip wired in CLI, BenchmarkParseLayer_Streaming added
-Resume file: .planning/phases/08-performance-optimization/08-03-SUMMARY.md
+Stopped at: Phase 9 complete — internal/exitcode package with ParseSizeThreshold + Evaluate (23 tests), --exit-code/--fail-on-security/--size-threshold/--username/--password CLI flags wired, os.Exit(2) for CI/CD conditions
+Resume file: .planning/phases/09-cicd-distribution/09-02-SUMMARY.md
