@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/ommmishra/imgdiff/internal/exitcode"
 	"github.com/ommmishra/imgdiff/internal/output"
 	"github.com/ommmishra/imgdiff/internal/security"
 	"github.com/ommmishra/imgdiff/internal/source"
@@ -15,10 +16,15 @@ import (
 
 // flags holds the values for all persistent flags defined on the root command.
 var flags struct {
-	format       string
-	securityOnly bool
-	quick        bool
-	platform     string
+	format         string
+	securityOnly   bool
+	quick          bool
+	platform       string
+	username       string // explicit registry username; overrides DefaultKeychain if non-empty
+	password       string // explicit registry password; paired with username
+	exitOnChange   bool   // --exit-code: exit 2 if any file changes found
+	exitOnSecurity bool   // --fail-on-security: exit 2 if security events detected
+	sizeThreshold  string // --size-threshold: exit 2 if net size increase exceeds threshold
 }
 
 // rootCmd is the base command when called without any subcommands.
@@ -45,6 +51,8 @@ Image sources supported:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := source.Options{
 			Platform: flags.platform,
+			Username: flags.username,
+			Password: flags.password,
 		}
 
 		// Open first image
@@ -137,6 +145,24 @@ Image sources supported:
 			return fmt.Errorf("unknown format %q: supported formats are terminal, json, markdown", flags.format)
 		}
 
+		// Parse --size-threshold (validate; error if invalid).
+		threshold, thresholdErr := exitcode.ParseSizeThreshold(flags.sizeThreshold)
+		if thresholdErr != nil {
+			return fmt.Errorf("invalid --size-threshold %q: %w", flags.sizeThreshold, thresholdErr)
+		}
+
+		// Evaluate exit code conditions AFTER all output is written.
+		// os.Exit(2) is used directly — not returned as error — to avoid cobra
+		// printing "Error: ..." to stderr and exiting 1 instead of 2.
+		ecOpts := exitcode.Options{
+			ExitOnChange:   flags.exitOnChange,
+			ExitOnSecurity: flags.exitOnSecurity,
+			SizeThreshold:  threshold,
+		}
+		if code := exitcode.Evaluate(result, events, ecOpts); code != 0 {
+			os.Exit(code)
+		}
+
 		return nil
 	},
 }
@@ -153,4 +179,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&flags.securityOnly, "security-only", false, "show only security-relevant changes")
 	rootCmd.PersistentFlags().BoolVar(&flags.quick, "quick", false, "manifest-only comparison (no content download)")
 	rootCmd.PersistentFlags().StringVar(&flags.platform, "platform", "", "target platform for multi-arch images (e.g., linux/amd64)")
+	rootCmd.PersistentFlags().StringVar(&flags.username, "username", "", "registry username for explicit authentication")
+	rootCmd.PersistentFlags().StringVar(&flags.password, "password", "", "registry password for explicit authentication")
+	rootCmd.PersistentFlags().BoolVar(&flags.exitOnChange, "exit-code", false, "exit 2 if any file changes are found")
+	rootCmd.PersistentFlags().BoolVar(&flags.exitOnSecurity, "fail-on-security", false, "exit 2 if security events are detected")
+	rootCmd.PersistentFlags().StringVar(&flags.sizeThreshold, "size-threshold", "", "exit 2 if net size increase exceeds threshold (e.g., 10MB, 500KB)")
 }

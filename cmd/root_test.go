@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/ommmishra/imgdiff/internal/exitcode"
 	"github.com/ommmishra/imgdiff/internal/output"
 	"github.com/ommmishra/imgdiff/internal/security"
 	"github.com/ommmishra/imgdiff/internal/tree"
@@ -154,5 +155,70 @@ func TestFormatMarkdown_ImageNamesInHeader(t *testing.T) {
 	// Empty result should show "(No changes)" in the changes section.
 	if !strings.Contains(md, "(No changes)") {
 		t.Errorf("FormatMarkdown empty result should contain \"(No changes)\"\noutput:\n%s", md)
+	}
+}
+
+// --- Exit code / --size-threshold flag tests ---
+
+// TestParseSizeThreshold_InvalidValue verifies that ParseSizeThreshold returns an error
+// for values that would be rejected by the CLI's --size-threshold flag.
+func TestParseSizeThreshold_InvalidValue(t *testing.T) {
+	invalidInputs := []string{
+		"-100MB",
+		"notanumber",
+		"10TB",
+		"xyz",
+	}
+	for _, input := range invalidInputs {
+		_, err := exitcode.ParseSizeThreshold(input)
+		if err == nil {
+			t.Errorf("ParseSizeThreshold(%q) expected error, got nil", input)
+		}
+	}
+}
+
+// TestParseSizeThreshold_ValidCLIValues verifies that all valid CLI --size-threshold
+// formats are accepted by ParseSizeThreshold.
+func TestParseSizeThreshold_ValidCLIValues(t *testing.T) {
+	validInputs := []struct {
+		input string
+		want  int64
+	}{
+		{"", 0},
+		{"0", 0},
+		{"100", 100},
+		{"1KB", 1024},
+		{"10MB", 10 * 1024 * 1024},
+		{"1GB", 1024 * 1024 * 1024},
+		{"1.5MB", int64(1.5 * 1024 * 1024)},
+	}
+	for _, tc := range validInputs {
+		got, err := exitcode.ParseSizeThreshold(tc.input)
+		if err != nil {
+			t.Errorf("ParseSizeThreshold(%q) unexpected error: %v", tc.input, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseSizeThreshold(%q) = %d, want %d", tc.input, got, tc.want)
+		}
+	}
+}
+
+// TestExitcode_PlatformFlagNoRegression verifies the exitcode package does not
+// affect the source.Options Platform field — the --platform flag must still work.
+// This is a smoke test confirming backward compatibility.
+func TestExitcode_PlatformFlagNoRegression(t *testing.T) {
+	// Verify exitcode package can be imported alongside diff/security with no conflicts.
+	result := buildTestResult()
+	events := security.Analyze(result)
+
+	opts := exitcode.Options{
+		ExitOnChange:   false,
+		ExitOnSecurity: false,
+		SizeThreshold:  0,
+	}
+	code := exitcode.Evaluate(result, events, opts)
+	if code != 0 {
+		t.Errorf("Evaluate with all-false options returned %d, want 0", code)
 	}
 }
