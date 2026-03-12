@@ -270,3 +270,65 @@ func BuildFromImage(img v1.Image) (*FileTree, error) {
 	}
 	return BuildTree(layers)
 }
+
+// IdenticalLeadingLayers returns the number of contiguous leading layers that
+// are identical between img1 and img2. It compares layers using DiffID (the
+// uncompressed content digest stored in the image config), which requires no
+// network download.
+//
+// The comparison stops at the first mismatch. Only the contiguous prefix is
+// counted — non-prefix identical layers (e.g., a shared layer at index 2 when
+// index 1 differs) are not counted. This is required for whiteout safety: a
+// whiteout in a skipped layer could delete a file that is present in the diff.
+//
+// If a DiffID call returns an error for layer i, the function treats it
+// conservatively as a mismatch and returns i, nil (non-fatal).
+func IdenticalLeadingLayers(img1, img2 v1.Image) (int, error) {
+	layers1, err := img1.Layers()
+	if err != nil {
+		return 0, fmt.Errorf("get layers for image1: %w", err)
+	}
+	layers2, err := img2.Layers()
+	if err != nil {
+		return 0, fmt.Errorf("get layers for image2: %w", err)
+	}
+
+	limit := len(layers1)
+	if len(layers2) < limit {
+		limit = len(layers2)
+	}
+
+	for i := 0; i < limit; i++ {
+		id1, err := layers1[i].DiffID()
+		if err != nil {
+			// Conservative: cannot confirm equality, stop here.
+			return i, nil
+		}
+		id2, err := layers2[i].DiffID()
+		if err != nil {
+			// Conservative: cannot confirm equality, stop here.
+			return i, nil
+		}
+		if id1 != id2 {
+			return i, nil
+		}
+	}
+	return limit, nil
+}
+
+// BuildFromImageSkipFirst builds a squashed FileTree from a v1.Image, skipping
+// the first skipFirst layers. This is used together with IdenticalLeadingLayers
+// to avoid downloading layers that are provably identical between two images.
+//
+// If skipFirst is 0, the result is identical to BuildFromImage.
+// If skipFirst >= len(layers), an empty FileTree is returned with no error.
+func BuildFromImageSkipFirst(img v1.Image, skipFirst int) (*FileTree, error) {
+	layers, err := img.Layers()
+	if err != nil {
+		return nil, fmt.Errorf("get image layers: %w", err)
+	}
+	if skipFirst >= len(layers) {
+		return &FileTree{Entries: make(map[string]*FileNode)}, nil
+	}
+	return BuildTree(layers[skipFirst:])
+}
