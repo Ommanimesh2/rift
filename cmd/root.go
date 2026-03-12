@@ -59,14 +59,31 @@ Image sources supported:
 			return fmt.Errorf("failed to open image %q: %w", args[1], err)
 		}
 
-		// Build file tree for first image.
-		tree1, err := tree.BuildFromImage(img1)
+		// Quick mode: manifest-only comparison, no content download.
+		if flags.quick {
+			summary, err := output.CompareLayers(img1, img2)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: layer comparison failed: %v\n", err)
+			}
+			fmt.Print(output.FormatQuick(summary, args[0], args[1], flags.format))
+			return nil
+		}
+
+		// Compute identical leading layer count without downloading any content.
+		skipCount, err := tree.IdenticalLeadingLayers(img1, img2)
+		if err != nil {
+			// Non-fatal: fall back to building full trees.
+			skipCount = 0
+		}
+
+		// Build file tree for first image, skipping identical leading layers.
+		tree1, err := tree.BuildFromImageSkipFirst(img1, skipCount)
 		if err != nil {
 			return fmt.Errorf("failed to build file tree for %q: %w", args[0], err)
 		}
 
-		// Build file tree for second image.
-		tree2, err := tree.BuildFromImage(img2)
+		// Build file tree for second image, skipping identical leading layers.
+		tree2, err := tree.BuildFromImageSkipFirst(img2, skipCount)
 		if err != nil {
 			return fmt.Errorf("failed to build file tree for %q: %w", args[1], err)
 		}
