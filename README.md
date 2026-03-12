@@ -1,13 +1,16 @@
 # imgdiff
 
-**File-level, security-aware container image diff tool.**
+![imgdiff demo](demo.gif)
 
-Compare two container images and see exactly what changed — files added, removed,
-or modified — with size impact, permission changes, and security-relevant mutations
-highlighted. Output is color-coded in the terminal and also available as JSON or
-Markdown for CI/CD pipelines and PR comments.
+[![Go](https://img.shields.io/badge/go-%3E%3D1.21-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ommmishra/imgdiff)](https://goreportcard.com/report/github.com/ommmishra/imgdiff)
 
-Fills the gap left by [Google's archived container-diff](https://github.com/GoogleContainerTools/container-diff).
+**The `git diff` for container images.**
+
+File-level diff for container images — files added, removed, modified — with size impact,
+security highlights, and CI/CD-ready JSON output. Replaces
+[Google's archived container-diff](https://github.com/GoogleContainerTools/container-diff).
 
 ---
 
