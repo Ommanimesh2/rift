@@ -531,6 +531,39 @@ func treeKeys(ft *FileTree) []string {
 	return keys
 }
 
+// BenchmarkParseLayer_Streaming confirms ParseLayer processes layer content
+// in streaming fashion. Memory usage is O(file count × metadata) not O(layer size).
+// Run with: go test -bench=. -benchmem ./internal/tree/...
+//
+// To verify streaming: increase perFileBytes to 10000 — alloc count should
+// stay the same while layer size grows 10x.
+func BenchmarkParseLayer_Streaming(b *testing.B) {
+	const fileCount = 1000
+	const perFileBytes = 1024
+
+	entries := make([]tarEntry, fileCount)
+	content := bytes.Repeat([]byte("x"), perFileBytes)
+	for i := range entries {
+		entries[i] = tarEntry{
+			path:     fmt.Sprintf("file_%04d.txt", i),
+			content:  content,
+			mode:     0644,
+			typeflag: tar.TypeReg,
+		}
+	}
+	layer := makeFakeLayer(entries)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, err := ParseLayer(layer)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 // --- Helpers for IdenticalLeadingLayers and BuildFromImageSkipFirst tests ---
 
 // fakeDiffIDLayer is a v1.Layer whose DiffID returns a configurable hash.
