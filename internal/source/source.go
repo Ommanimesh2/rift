@@ -42,6 +42,15 @@ type Options struct {
 	// Platform specifies the target platform for multi-arch images (e.g., "linux/amd64").
 	// Empty string means use the default platform.
 	Platform string
+
+	// Username is the explicit registry username for authentication.
+	// When non-empty, overrides DefaultKeychain with Basic auth credentials.
+	// Only applies to remote (registry) sources — ignored for daemon and tarball.
+	Username string
+
+	// Password is the explicit registry password paired with Username.
+	// Only used when Username is non-empty.
+	Password string
 }
 
 // DetectSourceType classifies an image reference string into one of the

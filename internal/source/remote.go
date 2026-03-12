@@ -8,14 +8,22 @@ import (
 )
 
 // openRemote pulls an image from a remote container registry.
+// When opts.Username is non-empty, explicit Basic auth credentials are used.
+// Otherwise, the Docker DefaultKeychain (reads ~/.docker/config.json) is used.
 func openRemote(ref string, opts Options) (v1.Image, error) {
 	parsedRef, err := name.ParseReference(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	remoteOpts := []remote.Option{
-		remote.WithAuthFromKeychain(authn.DefaultKeychain),
+	var remoteOpts []remote.Option
+	if opts.Username != "" {
+		remoteOpts = append(remoteOpts, remote.WithAuth(&authn.Basic{
+			Username: opts.Username,
+			Password: opts.Password,
+		}))
+	} else {
+		remoteOpts = append(remoteOpts, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	if opts.Platform != "" {
