@@ -7,7 +7,7 @@ Build a beautiful, file-level, security-aware container image diff tool in Go. S
 ## Milestones
 
 - ✅ **[v1.0 MVP](milestones/v1.0-ROADMAP.md)** — Phases 1–9 (shipped 2026-03-12)
-- 🚧 **v1.1 Demo** — Phases 10–11 (in progress)
+- ✅ **v1.1 Demo** — Phases 10–11 (shipped 2026-03-12)
 
 ## Domain Expertise
 
@@ -29,7 +29,7 @@ None
 - [x] **Phase 8: Performance Optimization** - Shared layer skip, streaming comparison, --quick manifest-only mode
 - [x] **Phase 9: CI/CD & Distribution** - Exit codes, multi-arch --platform flag, registry auth support
 - [x] **Phase 10: vhs Demo GIF** - Write vhs tape script, produce demo.gif covering file diff, security, and JSON output scenes
-- [ ] **Phase 11: README Polish** - Embed demo.gif, add badges, tighten copy for first-impression impact
+- [x] **Phase 11: README Polish** - Embed demo.gif, add badges, tighten copy for first-impression impact
 
 ## Phase Details
 
@@ -121,7 +121,7 @@ Plans:
 
 ---
 
-### 🚧 v1.1 Demo (In Progress)
+### ✅ v1.1 Demo (Shipped 2026-03-12)
 
 **Milestone Goal:** Make the first impression land — produce a demo GIF and polish the README so the tool looks as good as it works.
 
@@ -144,7 +144,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 11-01: TBD
+- [x] 11-01: GIF embed, badges, tagline, tighter opening paragraph
 
 ## Progress
 
@@ -163,4 +163,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. Performance Optimization | v1.0 | 3/3 | Complete | 2026-03-12 |
 | 9. CI/CD & Distribution | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 10. vhs Demo GIF | v1.1 | 2/2 | Complete | 2026-03-12 |
-| 11. README Polish | v1.1 | 0/? | Not started | - |
+| 11. README Polish | v1.1 | 1/1 | Complete | 2026-03-12 |

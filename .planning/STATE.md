@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** v1.1 Demo — demo GIF + README polish
+**Current focus:** v1.1 complete — ready to plan v1.2
 
 ## Current Position
 
-Milestone: v1.1 Demo — IN PROGRESS
-Phase: 11 of 11 (README Polish)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-12 — Phase 10 complete, demo.gif produced and committed
+Milestone: v1.1 Demo — SHIPPED 2026-03-12
+Phase: 11/11 complete
+Plan: 11-01 complete
+Status: v1.1 complete — ready to plan v1.2
+Last activity: 2026-03-12 — Phase 11 complete, README polished and committed
 
-Progress: ░░░░░░░░░░ 0% (v1.1)
+Progress: ██████████ 100% (v1.1)
 
 ## Performance Metrics
 
