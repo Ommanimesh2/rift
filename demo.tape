@@ -1,60 +1,41 @@
 Output demo.gif
 
-Set FontSize 14
-Set Width 1000
-Set Height 620
-Set Theme "Catppuccin Mocha"
-Set Padding 20
+Set FontSize 16
+Set Width 1100
+Set Height 680
+Set Theme "Dracula"
+Set Padding 30
+Set BorderRadius 12
 Set TypingSpeed 80ms
 Set Shell "zsh"
 Set WindowBar Colorful
 
-# ── Pre-pull images silently ──────────────────────────────────────────────────
-Hide
-Type "./imgdiff nginx:1.24 nginx:1.25 --format json > /dev/null 2>&1; echo DONE"
+# ── Scene 1: nginx file diff ──────────────────────────────────────────────────
+Type "# What changed in nginx 1.24 -> 1.25?"
 Enter
-Wait+Screen /DONE/
-Wait 1
-Type "./imgdiff ubuntu:22.04 ubuntu:24.04 --format json > /dev/null 2>&1; echo DONE"
+Sleep 1s
+Type "./imgdiff daemon://nginx:1.24 daemon://nginx:1.25 | grep -E 'nginx|conf|\.so|Summary' | head -20"
 Enter
-Wait+Screen /DONE/
-Wait 1
-Show
+Sleep 8s
 
-# ── Clear terminal for clean start ────────────────────────────────────────────
+# ── Scene 2: Security ─────────────────────────────────────────────────────────
 Type "clear"
 Enter
-Wait 0.5
-
-# ── Scene 1: File diff — nginx upgrade ────────────────────────────────────────
-Type "# Scene 1: What changed in nginx 1.24 → 1.25?"
+Sleep 300ms
+Type "# Security changes: ubuntu 22.04 -> 24.04"
 Enter
-Sleep 1
-Type "./imgdiff nginx:1.24 nginx:1.25"
+Sleep 1s
+Type "./imgdiff daemon://ubuntu:22.04 daemon://ubuntu:24.04 --security-only"
 Enter
-Wait+Screen /Summary:/
-Sleep 4
-
-# ── Scene 2: Security — ubuntu major upgrade ──────────────────────────────────
-Type "clear"
-Enter
-Wait 0.3
-Type "# Scene 2: Security changes in ubuntu 22.04 → 24.04"
-Enter
-Sleep 1
-Type "./imgdiff ubuntu:22.04 ubuntu:24.04"
-Enter
-Wait+Screen /Summary:/
-Sleep 4
+Sleep 8s
 
 # ── Scene 3: JSON for CI/CD ───────────────────────────────────────────────────
 Type "clear"
 Enter
-Wait 0.3
-Type "# Scene 3: JSON output for CI/CD pipelines"
+Sleep 300ms
+Type "# Pipeline-ready JSON output"
 Enter
-Sleep 1
-Type "./imgdiff nginx:1.24 nginx:1.25 --format json | head -30"
+Sleep 1s
+Type "./imgdiff daemon://nginx:1.24 daemon://nginx:1.25 --format json | head -30"
 Enter
-Wait+Screen /}/
-Sleep 3
+Sleep 10s
