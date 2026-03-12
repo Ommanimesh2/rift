@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Be the "git diff" for container images. Beautiful, instant clarity on what changed between two images — file-level, security-aware, and pipeline-ready.
-**Current focus:** Phase 8 — Performance Optimization
+**Current focus:** Phase 9 — CI/CD & Distribution
 
 ## Current Position
 
-Phase: 7 of 9 complete (Output Formats)
-Plan: 3/3 in Phase 7 complete
-Status: Phase 7 complete, ready for Phase 8
-Last activity: 2026-03-11 — Phase 7 complete (07-01 JSON formatter TDD, 07-02 Markdown formatter TDD, 07-03 CLI wiring)
+Phase: 8 of 9 complete (Performance Optimization)
+Plan: 3/3 in Phase 8 complete
+Status: Phase 8 complete, ready for Phase 9
+Last activity: 2026-03-12 — Phase 8 complete (08-01 layer skip TDD, 08-02 FormatQuick TDD, 08-03 CLI wiring + benchmark)
 
-Progress: ████████░░ 78%
+Progress: █████████░ 89%
 
 ## Performance Metrics
 
@@ -77,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-11
-Stopped at: Phase 7 complete — FormatJSON (10 tests), FormatMarkdown (11 tests), --format flag fully wired in CLI with switch dispatch, 4 integration tests in cmd/root_test.go
-Resume file: .planning/phases/07-output-formats/07-03-SUMMARY.md
+Stopped at: Phase 8 complete — IdenticalLeadingLayers + BuildFromImageSkipFirst (14 new tests), FormatQuick terminal/json/markdown (16 tests), --quick flag + layer skip wired in CLI, BenchmarkParseLayer_Streaming added
+Resume file: .planning/phases/08-performance-optimization/08-03-SUMMARY.md
