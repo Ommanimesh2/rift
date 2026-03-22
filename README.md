@@ -1,26 +1,18 @@
 # rift
 
-![rift demo](demo.gif)
-
 [![Go](https://img.shields.io/badge/go-%3E%3D1.21-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Ommanimesh2/rift)](https://goreportcard.com/report/github.com/Ommanimesh2/rift)
 
 **The `git diff` for container images.**
 
 File-level diff for container images — files added, removed, modified — with size impact,
-security highlights, and CI/CD-ready JSON output. Replaces
+security analysis, package-level awareness, and CI/CD-ready output. Replaces
 [Google's archived container-diff](https://github.com/GoogleContainerTools/container-diff).
 
 ---
 
 ## Install
-
-**Homebrew (macOS/Linux):**
-
-```sh
-brew install Ommanimesh2/tap/rift
-```
 
 **Go install (requires Go 1.21+):**
 
@@ -58,6 +50,12 @@ rift --format json alpine:3.18 alpine:3.19
 # Show only security-relevant changes
 rift --security-only ubuntu:22.04 ubuntu:24.04
 
+# Show package-level changes (APK/DEB)
+rift --packages alpine:3.18 alpine:3.19
+
+# Interactive TUI browser
+rift tui nginx:1.24 nginx:1.25
+
 # Fast manifest-only check (no content download)
 rift --quick nginx:1.24 nginx:1.25
 ```
@@ -84,6 +82,12 @@ Registry images use Docker credential helpers automatically (`~/.docker/config.j
 Usage:
   rift <image1> <image2> [flags]
 
+Commands:
+  tui            Interactive TUI for browsing image diffs
+  init           Create a .rift.yml configuration file
+  completion     Generate shell completion scripts (bash, zsh, fish, powershell)
+  version        Print version information
+
 Flags:
   --format string         Output format: terminal, json, markdown, sarif (default "terminal")
   --security-only         Show only security-relevant changes
@@ -93,6 +97,8 @@ Flags:
   --password string       Registry password for explicit authentication
   --include strings       Glob patterns to include (repeatable, e.g., --include "etc/**")
   --exclude strings       Glob patterns to exclude (repeatable, e.g., --exclude "var/cache/**")
+  --content-diff          Show unified diff for modified text files
+  --packages              Show package-level changes (APK, DEB)
   -v, --verbose           Enable verbose logging to stderr
 
 CI/CD flags:
@@ -113,19 +119,20 @@ CI/CD flags:
 Color-coded diff with size impact summary, per-layer breakdown, and security highlights:
 
 ```
-nginx:1.24 → nginx:1.25
+Comparing alpine:3.18 → alpine:3.19
 
-  + usr/share/nginx/html/50x.html          +1.2 KB
-  ~ etc/nginx/nginx.conf                   +340 B
-  - etc/nginx/conf.d/default.conf.bak      -2.1 KB
+~ bin/busybox  [content]  (-8.0 KB)
+- bin/ed  (0 bytes)
+~ etc/alpine-release  [content]  (-1 bytes)
++ etc/udhcpc/udhcpc.conf  (+287 bytes)
+~ lib/ld-musl-x86_64.so.1  [content]  (+32.0 KB)
 
-Summary: 1 added, 1 removed, 1 modified (+1.5 KB / -2.1 KB)
+Security Findings (2)
+━━━━━━━━━━━━━━━━━━━━━━━━
+  [WORLD-WRITABLE] lib/libz.so.1  (0777 → 0777)
+  [NEW EXEC] lib/libz.so.1.3.1
 
-Layers:
-  Layer 1  sha256:a3…  200 MB  shared
-  Layer 2  sha256:b7…   12 MB  → sha256:c9…  14 MB  +2 MB
-
-Security: no findings
+Summary: 3 added (+98.1 KB), 3 removed (-97.9 KB), 29 modified
 ```
 
 ### JSON
@@ -142,16 +149,16 @@ rift --format json alpine:3.18 alpine:3.19
   "image2": "alpine:3.19",
   "summary": {
     "added": 3,
-    "removed": 1,
-    "modified": 12,
-    "added_bytes": 1245184,
-    "removed_bytes": 4096
+    "removed": 3,
+    "modified": 29,
+    "added_bytes": 100495,
+    "removed_bytes": 100280
   },
   "changes": [
     {
       "path": "etc/alpine-release",
       "type": "modified",
-      "size_delta": 2,
+      "size_delta": -1,
       "changes": ["content"]
     }
   ],
@@ -206,6 +213,56 @@ rift --include "usr/**" --exclude "**/*.pyc" myapp:v1 myapp:v2
 ```
 
 Glob patterns support `**` for recursive matching.
+
+---
+
+## Package-Level Changes
+
+See what packages changed instead of raw file diffs:
+
+```sh
+rift --packages alpine:3.18 alpine:3.19
+```
+
+```
+--- Package Changes ---
+  ~ busybox 1.36.1-r7 → 1.36.1-r20
+  ~ libcrypto3 3.1.8-r0 → 3.1.8-r1
+  ~ musl 1.2.4-r3 → 1.2.4_git20230717-r5
+  ~ zlib 1.2.13-r1 → 1.3.1-r0
+```
+
+Supports Alpine (APK) and Debian/Ubuntu (DEB) package databases.
+
+---
+
+## Content Diff
+
+See exactly what changed inside modified text files:
+
+```sh
+rift --content-diff alpine:3.18 alpine:3.19
+```
+
+Generates unified diffs for text files like config files, scripts, and package databases. Binary files and files over 1 MB are skipped.
+
+---
+
+## Interactive TUI
+
+Browse diffs interactively:
+
+```sh
+rift tui alpine:3.18 alpine:3.19
+```
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` / arrows | Navigate |
+| `/` | Search by path |
+| `tab` | Switch between file list and detail panel |
+| `esc` | Clear search |
+| `q` | Quit |
 
 ---
 
@@ -307,6 +364,43 @@ rift --platform linux/amd64 myapp:v1 myapp:v2
 
 ---
 
+## Configuration
+
+Create a `.rift.yml` in your project to set default flags:
+
+```sh
+rift init
+```
+
+Example `.rift.yml`:
+
+```yaml
+format: terminal
+exclude:
+  - "var/cache/**"
+  - "**/*.pyc"
+fail-on-security: true
+verbose: false
+```
+
+CLI flags always override config file values. Config is loaded from `.rift.yml` in the current directory, then `~/.config/rift/config.yml`.
+
+---
+
+## Docker CLI Plugin
+
+Use rift as a Docker subcommand:
+
+```sh
+# Install
+./scripts/install-docker-plugin.sh ./rift
+
+# Use
+docker rift nginx:1.24 nginx:1.25
+```
+
+---
+
 ## Performance
 
 rift is fast by default and has explicit speed modes:
@@ -349,10 +443,11 @@ rift completion fish | source
 3. **Tree construction** — streams remaining layers, building an in-memory file tree per image (handles OCI whiteout files for layer deletions)
 4. **Diff** — compares the two squashed file trees, computing per-file changes with size deltas and attribute flags (content, mode, uid/gid, symlink target)
 5. **Security analysis** — pure-function pass over the diff result, flagging security-relevant permission changes
-6. **Output** — renders to terminal (lipgloss), JSON, or Markdown
+6. **Package detection** — parses APK/DEB package databases from both images to show package-level changes
+7. **Output** — renders to terminal (lipgloss), JSON, Markdown, or SARIF
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)

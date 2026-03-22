@@ -348,11 +348,6 @@ func TestDiff_SizeDelta(t *testing.T) {
 			result := diff.Diff(a, b)
 
 			if len(result.Entries) == 0 {
-				// Same size and same digest would produce no entry; skip.
-				if tc.beforeSize == tc.afterSize && tc.wantSizeDelta == 0 {
-					// If digest differs, we still get an entry.
-					// Force different digest — this test always uses different digests above.
-				}
 				t.Fatalf("expected at least 1 entry")
 			}
 			e := result.Entries[0]

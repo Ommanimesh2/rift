@@ -3,15 +3,36 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
+func chdir(t *testing.T, dir string) {
+	t.Helper()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	})
+}
+
+func writeFile(t *testing.T, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(name, []byte(content), 0o644); err != nil {
+		t.Fatalf("failed to write %s: %v", name, err)
+	}
+}
+
 func TestLoad_NoFile(t *testing.T) {
-	// Run in a temp dir with no config file
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	chdir(t, dir)
 
 	cfg, err := Load()
 	if err != nil {
@@ -27,11 +48,9 @@ func TestLoad_NoFile(t *testing.T) {
 
 func TestLoad_WithFile(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	chdir(t, dir)
 
-	content := `
+	writeFile(t, ".rift.yml", `
 format: json
 security-only: true
 platform: linux/arm64
@@ -43,8 +62,7 @@ exclude:
 size-threshold: 10MB
 verbose: true
 content-diff: true
-`
-	os.WriteFile(".rift.yml", []byte(content), 0o644)
+`)
 
 	cfg, err := Load()
 	if err != nil {
@@ -79,11 +97,9 @@ content-diff: true
 
 func TestLoad_YamlExtension(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	chdir(t, dir)
 
-	os.WriteFile(".rift.yaml", []byte("format: markdown\n"), 0o644)
+	writeFile(t, ".rift.yaml", "format: markdown\n")
 
 	cfg, err := Load()
 	if err != nil {
@@ -96,11 +112,9 @@ func TestLoad_YamlExtension(t *testing.T) {
 
 func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
-	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	chdir(t, dir)
 
-	os.WriteFile(".rift.yml", []byte("{{invalid yaml"), 0o644)
+	writeFile(t, ".rift.yml", "{{invalid yaml")
 
 	_, err := Load()
 	if err == nil {
@@ -113,11 +127,10 @@ func TestDefaultTemplate(t *testing.T) {
 	if len(tmpl) == 0 {
 		t.Error("expected non-empty template")
 	}
-	// Should contain commented-out examples
-	if !contains(tmpl, "# format:") {
+	if !strings.Contains(tmpl, "# format:") {
 		t.Error("expected template to contain '# format:'")
 	}
-	if !contains(tmpl, "# exclude:") {
+	if !strings.Contains(tmpl, "# exclude:") {
 		t.Error("expected template to contain '# exclude:'")
 	}
 }
@@ -145,17 +158,4 @@ func TestConfigPaths(t *testing.T) {
 			t.Errorf("expected %s in config paths", expected)
 		}
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
