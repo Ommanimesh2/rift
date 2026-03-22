@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/security"
-	"github.com/ommmishra/imgdiff/internal/tree"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/security"
+	"github.com/Ommanimesh2/rift/internal/tree"
 )
 
 // makeAdded builds a DiffEntry for an Added file with the given path, mode, and IsDir.

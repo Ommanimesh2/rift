@@ -6,8 +6,8 @@ package output
 import (
 	"encoding/json"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/security"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/security"
 )
 
 // DiffReport is the top-level JSON structure produced by FormatJSON.

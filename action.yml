@@ -1,0 +1,129 @@
+name: "Rift - Container Image Diff"
+description: "File-level diff for container images with security analysis and CI/CD integration"
+author: "Ommanimesh2"
+
+branding:
+  icon: "layers"
+  color: "blue"
+
+inputs:
+  image1:
+    description: "First container image reference"
+    required: true
+  image2:
+    description: "Second container image reference"
+    required: true
+  format:
+    description: "Output format: terminal, json, markdown"
+    default: "markdown"
+  security-only:
+    description: "Show only security-relevant changes"
+    default: "false"
+  fail-on-security:
+    description: "Exit with code 2 if security events are detected"
+    default: "false"
+  exit-code:
+    description: "Exit with code 2 if any file changes are found"
+    default: "false"
+  size-threshold:
+    description: "Exit with code 2 if net size increase exceeds threshold (e.g., 10MB)"
+    default: ""
+  platform:
+    description: "Target platform for multi-arch images (e.g., linux/amd64)"
+    default: ""
+  quick:
+    description: "Manifest-only comparison (no content download)"
+    default: "false"
+  version:
+    description: "Version of rift to install"
+    default: "latest"
+
+outputs:
+  diff-output:
+    description: "The diff output text"
+    value: ${{ steps.diff.outputs.diff-output }}
+  has-changes:
+    description: "Whether any file changes were detected (true/false)"
+    value: ${{ steps.diff.outputs.has-changes }}
+  has-security-events:
+    description: "Whether any security events were detected (true/false)"
+    value: ${{ steps.diff.outputs.has-security-events }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install rift
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        if [ "$VERSION" = "latest" ]; then
+          VERSION=$(curl -sL https://api.github.com/repos/Ommanimesh2/rift/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+        fi
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+        esac
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        URL="https://github.com/Ommanimesh2/rift/releases/download/${VERSION}/rift_${VERSION#v}_${OS}_${ARCH}.tar.gz"
+        curl -sL "$URL" | tar xz -C /usr/local/bin rift
+        rift version
+
+    - name: Run rift diff
+      id: diff
+      shell: bash
+      run: |
+        set -euo pipefail
+        ARGS=""
+        if [ "${{ inputs.format }}" != "" ]; then
+          ARGS="$ARGS --format ${{ inputs.format }}"
+        fi
+        if [ "${{ inputs.security-only }}" = "true" ]; then
+          ARGS="$ARGS --security-only"
+        fi
+        if [ "${{ inputs.fail-on-security }}" = "true" ]; then
+          ARGS="$ARGS --fail-on-security"
+        fi
+        if [ "${{ inputs.exit-code }}" = "true" ]; then
+          ARGS="$ARGS --exit-code"
+        fi
+        if [ "${{ inputs.size-threshold }}" != "" ]; then
+          ARGS="$ARGS --size-threshold ${{ inputs.size-threshold }}"
+        fi
+        if [ "${{ inputs.platform }}" != "" ]; then
+          ARGS="$ARGS --platform ${{ inputs.platform }}"
+        fi
+        if [ "${{ inputs.quick }}" = "true" ]; then
+          ARGS="$ARGS --quick"
+        fi
+
+        EXIT_CODE=0
+        OUTPUT=$(rift $ARGS "${{ inputs.image1 }}" "${{ inputs.image2 }}" 2>&1) || EXIT_CODE=$?
+
+        # Set outputs
+        echo "diff-output<<RIFT_EOF" >> "$GITHUB_OUTPUT"
+        echo "$OUTPUT" >> "$GITHUB_OUTPUT"
+        echo "RIFT_EOF" >> "$GITHUB_OUTPUT"
+
+        if [ "$EXIT_CODE" -eq 2 ]; then
+          echo "has-changes=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has-changes=false" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Check for security events by running a separate security-only check
+        SEC_OUTPUT=$(rift --security-only --format json "${{ inputs.image1 }}" "${{ inputs.image2 }}" 2>/dev/null) || true
+        if echo "$SEC_OUTPUT" | grep -q '"security_events":\[\]'; then
+          echo "has-security-events=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "has-security-events=true" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Write to step summary if markdown format
+        if [ "${{ inputs.format }}" = "markdown" ]; then
+          echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        # Propagate the exit code
+        exit $EXIT_CODE

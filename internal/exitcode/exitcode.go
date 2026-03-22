@@ -1,5 +1,5 @@
 // Package exitcode provides exit code evaluation for CI/CD pipeline integration.
-// It determines whether imgdiff should exit with a non-zero status based on
+// It determines whether rift should exit with a non-zero status based on
 // configurable conditions: file changes, security events, and size growth thresholds.
 package exitcode
 
@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/security"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/security"
 )
 
 // Options configures which conditions trigger a non-zero exit code.

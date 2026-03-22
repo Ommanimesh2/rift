@@ -8,7 +8,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 
-	"github.com/ommmishra/imgdiff/internal/output"
+	"github.com/Ommanimesh2/rift/internal/output"
 )
 
 // --- Test helpers ---

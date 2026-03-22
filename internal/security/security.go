@@ -9,7 +9,7 @@ package security
 import (
 	"os"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/diff"
 )
 
 // Permission bit constants for clarity and avoiding magic numbers.

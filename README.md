@@ -1,10 +1,10 @@
-# imgdiff
+# rift
 
-![imgdiff demo](demo.gif)
+![rift demo](demo.gif)
 
 [![Go](https://img.shields.io/badge/go-%3E%3D1.21-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ommmishra/imgdiff)](https://goreportcard.com/report/github.com/ommmishra/imgdiff)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Ommanimesh2/rift)](https://goreportcard.com/report/github.com/Ommanimesh2/rift)
 
 **The `git diff` for container images.**
 
@@ -16,19 +16,27 @@ security highlights, and CI/CD-ready JSON output. Replaces
 
 ## Install
 
-**Build from source (requires Go 1.21+):**
+**Homebrew (macOS/Linux):**
 
 ```sh
-go install github.com/ommmishra/imgdiff@latest
+brew install Ommanimesh2/tap/rift
 ```
 
-**Clone and build:**
+**Go install (requires Go 1.21+):**
 
 ```sh
-git clone https://github.com/ommmishra/imgdiff
-cd imgdiff
-go build -o imgdiff .
+go install github.com/Ommanimesh2/rift@latest
 ```
+
+**Docker:**
+
+```sh
+docker run --rm ghcr.io/Ommanimesh2/rift nginx:1.24 nginx:1.25
+```
+
+**Download binary:**
+
+Grab the latest release from [GitHub Releases](https://github.com/Ommanimesh2/rift/releases).
 
 ---
 
@@ -36,29 +44,29 @@ go build -o imgdiff .
 
 ```sh
 # Compare two registry images
-imgdiff nginx:1.24 nginx:1.25
+rift nginx:1.24 nginx:1.25
 
 # Compare local Docker daemon images
-imgdiff myapp:latest myapp:v2.0
+rift myapp:latest myapp:v2.0
 
 # Compare OCI tarball archives
-imgdiff ./old.tar ./new.tar
+rift ./old.tar ./new.tar
 
 # Output JSON for pipelines
-imgdiff --format json alpine:3.18 alpine:3.19
+rift --format json alpine:3.18 alpine:3.19
 
 # Show only security-relevant changes
-imgdiff --security-only ubuntu:22.04 ubuntu:24.04
+rift --security-only ubuntu:22.04 ubuntu:24.04
 
 # Fast manifest-only check (no content download)
-imgdiff --quick nginx:1.24 nginx:1.25
+rift --quick nginx:1.24 nginx:1.25
 ```
 
 ---
 
 ## Image Sources
 
-imgdiff auto-detects the source type from the reference string:
+rift auto-detects the source type from the reference string:
 
 | Reference | Source | Example |
 |-----------|--------|---------|
@@ -74,15 +82,18 @@ Registry images use Docker credential helpers automatically (`~/.docker/config.j
 
 ```
 Usage:
-  imgdiff <image1> <image2> [flags]
+  rift <image1> <image2> [flags]
 
 Flags:
-  --format string         Output format: terminal, json, markdown (default "terminal")
+  --format string         Output format: terminal, json, markdown, sarif (default "terminal")
   --security-only         Show only security-relevant changes
   --quick                 Manifest-only comparison (no content download)
   --platform string       Target platform for multi-arch images (e.g., linux/amd64)
   --username string       Registry username for explicit authentication
   --password string       Registry password for explicit authentication
+  --include strings       Glob patterns to include (repeatable, e.g., --include "etc/**")
+  --exclude strings       Glob patterns to exclude (repeatable, e.g., --exclude "var/cache/**")
+  -v, --verbose           Enable verbose logging to stderr
 
 CI/CD flags:
   --exit-code             Exit 2 if any file changes are found
@@ -122,7 +133,7 @@ Security: no findings
 Machine-readable output for CI/CD pipelines:
 
 ```sh
-imgdiff --format json alpine:3.18 alpine:3.19
+rift --format json alpine:3.18 alpine:3.19
 ```
 
 ```json
@@ -153,16 +164,54 @@ imgdiff --format json alpine:3.18 alpine:3.19
 GitHub-Flavored Markdown for PR comments and documentation:
 
 ```sh
-imgdiff --format markdown myapp:v1 myapp:v2
+rift --format markdown myapp:v1 myapp:v2
 ```
 
 Output is a formatted table ready to paste into a PR description or GitHub Actions step summary.
+
+### SARIF
+
+Upload security findings directly to GitHub Code Scanning:
+
+```sh
+rift --format sarif myapp:v1 myapp:v2 > results.sarif
+```
+
+Use with GitHub Actions:
+
+```yaml
+- name: Run rift security scan
+  run: rift --format sarif ${{ env.OLD_IMAGE }} ${{ env.NEW_IMAGE }} > results.sarif
+
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
+
+---
+
+## Path Filtering
+
+Focus on what matters by including or excluding paths:
+
+```sh
+# Only show changes in /etc
+rift --include "etc/**" alpine:3.18 alpine:3.19
+
+# Ignore cache and docs
+rift --exclude "var/cache/**" --exclude "usr/share/doc/**" myapp:v1 myapp:v2
+
+# Combine include and exclude
+rift --include "usr/**" --exclude "**/*.pyc" myapp:v1 myapp:v2
+```
+
+Glob patterns support `**` for recursive matching.
 
 ---
 
 ## Security Analysis
 
-imgdiff automatically detects security-relevant changes and highlights them in the output.
+rift automatically detects security-relevant changes and highlights them in the output.
 
 | Event | Trigger |
 |-------|---------|
@@ -176,10 +225,10 @@ imgdiff automatically detects security-relevant changes and highlights them in t
 
 ```sh
 # Show only security-relevant paths
-imgdiff --security-only ubuntu:22.04 ubuntu:24.04
+rift --security-only ubuntu:22.04 ubuntu:24.04
 
 # Fail CI on any security finding
-imgdiff --fail-on-security ubuntu:22.04 ubuntu:24.04
+rift --fail-on-security ubuntu:22.04 ubuntu:24.04
 ```
 
 ---
@@ -194,12 +243,27 @@ imgdiff --fail-on-security ubuntu:22.04 ubuntu:24.04
 | `1` | Tool error (bad arguments, unreachable image, etc.) |
 | `2` | Condition triggered (changes, security events, or size threshold exceeded) |
 
-### GitHub Actions
+### GitHub Action
+
+Use rift directly in your workflows:
+
+```yaml
+- name: Image diff
+  uses: Ommanimesh2/rift@v1
+  with:
+    image1: myapp:${{ github.event.pull_request.base.sha }}
+    image2: myapp:${{ github.sha }}
+    format: markdown
+    fail-on-security: true
+    size-threshold: 10MB
+```
+
+Or run manually:
 
 ```yaml
 - name: Image diff check
   run: |
-    imgdiff \
+    rift \
       --fail-on-security \
       --size-threshold 10MB \
       --format markdown \
@@ -211,22 +275,22 @@ imgdiff --fail-on-security ubuntu:22.04 ubuntu:24.04
 
 ```sh
 # Fail if image grew by more than 5 MB
-imgdiff --size-threshold 5MB myapp:v1 myapp:v2
+rift --size-threshold 5MB myapp:v1 myapp:v2
 
 # Fail if image grew at all
-imgdiff --exit-code myapp:v1 myapp:v2
+rift --exit-code myapp:v1 myapp:v2
 ```
 
 Threshold units: `B`, `KB`, `MB`, `GB` (case-insensitive). Decimals supported: `1.5MB`.
 
 ### Private registries
 
-imgdiff uses Docker credential helpers by default — if `docker pull` works, imgdiff works.
+rift uses Docker credential helpers by default — if `docker pull` works, rift works.
 
 For explicit credentials (useful in CI without Docker config):
 
 ```sh
-imgdiff --username $REGISTRY_USER --password $REGISTRY_PASS \
+rift --username $REGISTRY_USER --password $REGISTRY_PASS \
   ghcr.io/org/app:v1 ghcr.io/org/app:v2
 ```
 
@@ -234,18 +298,18 @@ imgdiff --username $REGISTRY_USER --password $REGISTRY_PASS \
 
 ```sh
 # Default: use host platform
-imgdiff myapp:v1 myapp:v2
+rift myapp:v1 myapp:v2
 
 # Select specific platform
-imgdiff --platform linux/arm64 myapp:v1 myapp:v2
-imgdiff --platform linux/amd64 myapp:v1 myapp:v2
+rift --platform linux/arm64 myapp:v1 myapp:v2
+rift --platform linux/amd64 myapp:v1 myapp:v2
 ```
 
 ---
 
 ## Performance
 
-imgdiff is fast by default and has explicit speed modes:
+rift is fast by default and has explicit speed modes:
 
 | Feature | Description |
 |---------|-------------|
@@ -255,11 +319,26 @@ imgdiff is fast by default and has explicit speed modes:
 
 ```sh
 # Instant comparison via manifest only (registry images)
-imgdiff --quick nginx:1.24 nginx:1.25
+rift --quick nginx:1.24 nginx:1.25
 ```
 
 `--quick` shows layer-level changes (which layers were added, removed, or replaced) without
 downloading any content. Useful for a fast "did anything change?" check in CI.
+
+---
+
+## Shell Completions
+
+```sh
+# Bash
+source <(rift completion bash)
+
+# Zsh
+rift completion zsh > "${fpath[1]}/_rift"
+
+# Fish
+rift completion fish | source
+```
 
 ---
 

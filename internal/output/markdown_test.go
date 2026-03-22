@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/output"
-	"github.com/ommmishra/imgdiff/internal/security"
-	"github.com/ommmishra/imgdiff/internal/tree"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/output"
+	"github.com/Ommanimesh2/rift/internal/security"
+	"github.com/Ommanimesh2/rift/internal/tree"
 )
 
 // --- FormatMarkdown tests ---

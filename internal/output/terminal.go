@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/security"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/security"
 )
 
 // terminal styles — defined at package level so they are initialized once.

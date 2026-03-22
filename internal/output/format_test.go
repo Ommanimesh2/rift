@@ -7,9 +7,9 @@ import (
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 
-	"github.com/ommmishra/imgdiff/internal/diff"
-	"github.com/ommmishra/imgdiff/internal/output"
-	"github.com/ommmishra/imgdiff/internal/tree"
+	"github.com/Ommanimesh2/rift/internal/diff"
+	"github.com/Ommanimesh2/rift/internal/output"
+	"github.com/Ommanimesh2/rift/internal/tree"
 )
 
 // makeTree builds a *tree.FileTree from a map of path → *tree.FileNode.

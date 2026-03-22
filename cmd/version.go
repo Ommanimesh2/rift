@@ -17,9 +17,9 @@ var (
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
-	Long:  "Print the version, commit hash, and build date of this imgdiff binary.",
+	Long:  "Print the version, commit hash, and build date of this rift binary.",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("imgdiff version %s (commit: %s, built: %s)\n", version, commitHash, buildDate)
+		fmt.Printf("rift version %s (commit: %s, built: %s)\n", version, commitHash, buildDate)
 	},
 }
 

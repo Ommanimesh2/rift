@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ommmishra/imgdiff/internal/output"
+	"github.com/Ommanimesh2/rift/internal/output"
 )
 
 // testLayerSummary returns a non-nil LayerSummary for use in FormatQuick tests.

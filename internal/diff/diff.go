@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ommmishra/imgdiff/internal/tree"
+	"github.com/Ommanimesh2/rift/internal/tree"
 )
 
 // ChangeType classifies a single diff entry.

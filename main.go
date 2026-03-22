@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ommmishra/imgdiff/cmd"
+import "github.com/Ommanimesh2/rift/cmd"
 
 func main() {
 	cmd.Execute()
