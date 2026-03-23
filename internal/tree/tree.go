@@ -42,6 +42,10 @@ type FileNode struct {
 	// Digest is the sha256 hash of the file content for regular files.
 	// Algorithm is always "sha256". Hex is empty for directories and symlinks.
 	Digest v1.Hash
+
+	// LayerIndex is the zero-based index of the layer that last wrote this file.
+	// Set by BuildTree; defaults to 0.
+	LayerIndex int
 }
 
 // normalizePath strips leading "./" and "/" from a tar header name and returns
@@ -188,14 +192,26 @@ func formatBytes(b int64) string {
 //
 // Whiteout marker entries themselves are never included in the final tree.
 func BuildTree(layers []v1.Layer) (*FileTree, error) {
+	return BuildTreeWithAttribution(layers, 0)
+}
+
+// BuildTreeWithAttribution squashes layers like BuildTree but also sets
+// FileNode.LayerIndex to baseIndex + the layer's position in the slice.
+func BuildTreeWithAttribution(layers []v1.Layer, baseIndex int) (*FileTree, error) {
 	tree := &FileTree{
 		Entries: make(map[string]*FileNode),
 	}
 
-	for _, layer := range layers {
+	for i, layer := range layers {
+		layerIdx := baseIndex + i
 		nodes, err := ParseLayer(layer)
 		if err != nil {
 			return nil, fmt.Errorf("parse layer: %w", err)
+		}
+
+		// Set layer index on all parsed nodes.
+		for _, node := range nodes {
+			node.LayerIndex = layerIdx
 		}
 
 		// Collect opaque whiteout directories from this layer first.
@@ -330,5 +346,5 @@ func BuildFromImageSkipFirst(img v1.Image, skipFirst int) (*FileTree, error) {
 	if skipFirst >= len(layers) {
 		return &FileTree{Entries: make(map[string]*FileNode)}, nil
 	}
-	return BuildTree(layers[skipFirst:])
+	return BuildTreeWithAttribution(layers[skipFirst:], skipFirst)
 }

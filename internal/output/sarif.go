@@ -120,6 +120,30 @@ var sarifRules = []SarifRule{
 		FullDescription:  SarifMessage{Text: "A file's permission bits were broadened, granting more access than before."},
 		DefaultConfig:    SarifRuleConfig{Level: "warning"},
 	},
+	{
+		ID:               "rift/secret_private_key",
+		ShortDescription: SarifMessage{Text: "Private key detected"},
+		FullDescription:  SarifMessage{Text: "A file containing a private key was found in the image."},
+		DefaultConfig:    SarifRuleConfig{Level: "error"},
+	},
+	{
+		ID:               "rift/secret_aws_key",
+		ShortDescription: SarifMessage{Text: "AWS access key detected"},
+		FullDescription:  SarifMessage{Text: "A file containing an AWS access key (AKIA...) was found in the image."},
+		DefaultConfig:    SarifRuleConfig{Level: "error"},
+	},
+	{
+		ID:               "rift/secret_api_token",
+		ShortDescription: SarifMessage{Text: "API token detected"},
+		FullDescription:  SarifMessage{Text: "A file containing an API key or token pattern was found in the image."},
+		DefaultConfig:    SarifRuleConfig{Level: "error"},
+	},
+	{
+		ID:               "rift/secret_file_path",
+		ShortDescription: SarifMessage{Text: "Secret file detected"},
+		FullDescription:  SarifMessage{Text: "A file matching a known secret file pattern (e.g., .env, private key, credentials) was found."},
+		DefaultConfig:    SarifRuleConfig{Level: "error"},
+	},
 }
 
 // sarifRuleID maps SecurityEventKind to SARIF rule IDs.
@@ -130,7 +154,11 @@ var sarifRuleID = map[security.SecurityEventKind]string{
 	security.KindSGIDAdded:      "rift/sgid_added",
 	security.KindNewExecutable:  "rift/new_executable",
 	security.KindWorldWritable:  "rift/world_writable",
-	security.KindPermEscalation: "rift/perm_escalation",
+	security.KindPermEscalation:  "rift/perm_escalation",
+	security.KindSecretPrivateKey: "rift/secret_private_key",
+	security.KindSecretAWSKey:     "rift/secret_aws_key",
+	security.KindSecretAPIToken:   "rift/secret_api_token",
+	security.KindSecretFilePath:   "rift/secret_file_path",
 }
 
 // sarifLevel maps SecurityEventKind to SARIF severity levels.
@@ -141,7 +169,11 @@ var sarifLevel = map[security.SecurityEventKind]string{
 	security.KindSGIDAdded:      "error",
 	security.KindNewExecutable:  "warning",
 	security.KindWorldWritable:  "warning",
-	security.KindPermEscalation: "warning",
+	security.KindPermEscalation:  "warning",
+	security.KindSecretPrivateKey: "error",
+	security.KindSecretAWSKey:     "error",
+	security.KindSecretAPIToken:   "error",
+	security.KindSecretFilePath:   "error",
 }
 
 // FormatSARIF produces a SARIF v2.1.0 JSON report from security events.

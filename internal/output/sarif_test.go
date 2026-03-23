@@ -32,8 +32,8 @@ func TestFormatSARIF_EmptyEvents(t *testing.T) {
 	if report.Runs[0].Tool.Driver.Name != "rift" {
 		t.Errorf("expected tool name rift, got %s", report.Runs[0].Tool.Driver.Name)
 	}
-	if len(report.Runs[0].Tool.Driver.Rules) != 7 {
-		t.Errorf("expected 7 rules, got %d", len(report.Runs[0].Tool.Driver.Rules))
+	if len(report.Runs[0].Tool.Driver.Rules) != 11 {
+		t.Errorf("expected 11 rules, got %d", len(report.Runs[0].Tool.Driver.Rules))
 	}
 }
 

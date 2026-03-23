@@ -44,6 +44,12 @@ const (
 
 	// KindPermEscalation is emitted when a Modified file's permission bits are strictly more permissive.
 	KindPermEscalation SecurityEventKind = "perm_escalation"
+
+	// Secret detection kinds.
+	KindSecretPrivateKey SecurityEventKind = "secret_private_key"
+	KindSecretAWSKey     SecurityEventKind = "secret_aws_key"
+	KindSecretAPIToken   SecurityEventKind = "secret_api_token"
+	KindSecretFilePath   SecurityEventKind = "secret_file_path"
 )
 
 // SecurityEvent describes a single security-relevant change detected by Analyze.

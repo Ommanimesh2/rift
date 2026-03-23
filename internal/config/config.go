@@ -19,8 +19,17 @@ type Config struct {
 	SizeThreshold string   `yaml:"size-threshold,omitempty"`
 	Include       []string `yaml:"include,omitempty"`
 	Exclude       []string `yaml:"exclude,omitempty"`
-	Verbose       *bool    `yaml:"verbose,omitempty"`
-	ContentDiff   *bool    `yaml:"content-diff,omitempty"`
+	Verbose     *bool         `yaml:"verbose,omitempty"`
+	ContentDiff *bool         `yaml:"content-diff,omitempty"`
+	Policy      *PolicyConfig `yaml:"policy,omitempty"`
+}
+
+// PolicyConfig defines policy rules evaluated with --policy.
+type PolicyConfig struct {
+	MaxSizeGrowth     string `yaml:"max-size-growth,omitempty"`
+	NoNewSUID         *bool  `yaml:"no-new-suid,omitempty"`
+	NoWorldWritable   *bool  `yaml:"no-world-writable,omitempty"`
+	MaxNewExecutables *int   `yaml:"max-new-executables,omitempty"`
 }
 
 // Load reads the rift config file from standard locations.
@@ -101,5 +110,12 @@ func DefaultTemplate() string {
 
 # CI/CD: exit 2 if net size increase exceeds threshold
 # size-threshold: ""
+
+# Policy rules (evaluated with --policy flag)
+# policy:
+#   max-size-growth: 50MB
+#   no-new-suid: true
+#   no-world-writable: true
+#   max-new-executables: 10
 `
 }

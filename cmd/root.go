@@ -12,6 +12,8 @@ import (
 	riftlog "github.com/Ommanimesh2/rift/internal/log"
 	"github.com/Ommanimesh2/rift/internal/output"
 	"github.com/Ommanimesh2/rift/internal/packages"
+	"github.com/Ommanimesh2/rift/internal/policy"
+	"github.com/Ommanimesh2/rift/internal/secrets"
 	"github.com/Ommanimesh2/rift/internal/security"
 	"github.com/Ommanimesh2/rift/internal/source"
 	"github.com/Ommanimesh2/rift/internal/tree"
@@ -24,16 +26,21 @@ var flags struct {
 	securityOnly   bool
 	quick          bool
 	platform       string
-	username       string   // explicit registry username; overrides DefaultKeychain if non-empty
-	password       string   // explicit registry password; paired with username
-	exitOnChange   bool     // --exit-code: exit 2 if any file changes found
-	exitOnSecurity bool     // --fail-on-security: exit 2 if security events detected
-	sizeThreshold  string   // --size-threshold: exit 2 if net size increase exceeds threshold
-	include     []string // --include: glob patterns to include
-	exclude     []string // --exclude: glob patterns to exclude
-	verbose     bool     // --verbose: enable verbose logging to stderr
-	contentDiff bool     // --content-diff: show unified diff for modified text files
-	showPackages bool    // --packages: show package-level changes
+	username       string   // explicit registry username
+	password       string   // explicit registry password
+	exitOnChange   bool     // --exit-code
+	exitOnSecurity bool     // --fail-on-security
+	sizeThreshold  string   // --size-threshold
+	include        []string // --include
+	exclude        []string // --exclude
+	verbose        bool     // --verbose
+	contentDiff    bool     // --content-diff
+	showPackages   bool     // --packages
+	summary        bool     // --summary
+	policyCheck    bool     // --policy
+	scanSecrets    bool     // --secrets
+	showLayers     bool     // --layers
+	dockerfile     string   // --dockerfile
 }
 
 // rootCmd is the base command when called without any subcommands.
@@ -53,14 +60,23 @@ Image sources supported:
   - OCI tarball archives (./image.tar)`,
 	Example: `  rift nginx:1.24 nginx:1.25
   rift myapp:latest myapp:v2.0
+  rift --summary alpine:3.18 alpine:3.19
   rift --format json alpine:3.18 alpine:3.19
   rift --security-only ubuntu:22.04 ubuntu:24.04
+  rift --secrets --fail-on-security myapp:v1 myapp:v2
+  rift --layers alpine:3.18 alpine:3.19
+  rift --policy myapp:v1 myapp:v2
   rift --exclude "var/cache/**" alpine:3.18 alpine:3.19
   rift ./old-image.tar ./new-image.tar`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Load config file and apply defaults for flags not set on CLI.
 		applyConfig(cmd)
+
+		// Summary mode auto-enables packages.
+		if flags.summary {
+			flags.showPackages = true
+		}
 
 		log := riftlog.New(flags.verbose)
 
@@ -99,21 +115,19 @@ Image sources supported:
 		log.Step("Comparing layer digests")
 		skipCount, err := tree.IdenticalLeadingLayers(img1, img2)
 		if err != nil {
-			// Non-fatal: fall back to building full trees.
 			skipCount = 0
 		}
 		if skipCount > 0 {
 			log.Stepf("Skipping %d identical leading layers", skipCount)
 		}
 
-		// Build file tree for first image, skipping identical leading layers.
+		// Build file trees, skipping identical leading layers.
 		log.Stepf("Building file tree for %s", args[0])
 		tree1, err := tree.BuildFromImageSkipFirst(img1, skipCount)
 		if err != nil {
 			return fmt.Errorf("failed to build file tree for %q: %w", args[0], err)
 		}
 
-		// Build file tree for second image, skipping identical leading layers.
 		log.Stepf("Building file tree for %s", args[1])
 		tree2, err := tree.BuildFromImageSkipFirst(img2, skipCount)
 		if err != nil {
@@ -141,6 +155,28 @@ Image sources supported:
 		// Run security analysis (pure function, always succeeds).
 		log.Step("Running security analysis")
 		events := security.Analyze(result)
+
+		// Secrets detection: path-based is always on, content-based gated behind --secrets.
+		log.Step("Scanning for secret file paths")
+		pathFindings := secrets.AnalyzePaths(result)
+		secretEvents := secrets.ToSecurityEvents(pathFindings)
+		events = append(events, secretEvents...)
+
+		if flags.scanSecrets {
+			log.Step("Scanning file content for secrets")
+			for _, entry := range result.Entries {
+				if entry.Type == diff.Removed {
+					continue
+				}
+				fileContent, err := content.ExtractFile(img2, entry.Path)
+				if err != nil || fileContent == nil || !content.IsText(fileContent) {
+					continue
+				}
+				contentFindings := secrets.AnalyzeContent(entry.Path, fileContent)
+				events = append(events, secrets.ToSecurityEvents(contentFindings)...)
+			}
+		}
+
 		if len(events) > 0 {
 			log.Stepf("Found %d security events", len(events))
 		}
@@ -151,12 +187,10 @@ Image sources supported:
 				fmt.Println("No security findings.")
 				return nil
 			}
-			// Build a set of paths that have security events.
 			secPaths := make(map[string]struct{}, len(events))
 			for _, ev := range events {
 				secPaths[ev.Path] = struct{}{}
 			}
-			// Filter result.Entries to only those with security events.
 			filtered := result.Entries[:0]
 			for _, entry := range result.Entries {
 				if _, ok := secPaths[entry.Path]; ok {
@@ -194,7 +228,7 @@ Image sources supported:
 			log.Stepf("Generated %d content diffs", len(contentDiffs))
 		}
 
-		// Package-level analysis if requested.
+		// Package-level analysis.
 		var pkgChanges []packages.PackageChange
 		if flags.showPackages {
 			log.Step("Detecting package manager format")
@@ -202,7 +236,6 @@ Image sources supported:
 			for _, e := range result.Entries {
 				allPaths[e.Path] = true
 			}
-			// Also check known DB paths directly
 			for _, p := range []string{"lib/apk/db/installed", "var/lib/dpkg/status"} {
 				allPaths[p] = true
 			}
@@ -229,6 +262,55 @@ Image sources supported:
 			}
 		}
 
+		// Policy evaluation.
+		if flags.policyCheck {
+			cfg, _ := config.Load()
+			if cfg.Policy != nil {
+				log.Step("Evaluating policy rules")
+				policyResults := policy.Evaluate(*cfg.Policy, result, events)
+				fmt.Println("\nPolicy Evaluation")
+				fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━")
+				for _, r := range policyResults {
+					status := "PASS"
+					if !r.Passed {
+						status = "FAIL"
+					}
+					fmt.Printf("  [%s] %s: %s\n", status, r.Name, r.Message)
+				}
+				fmt.Println()
+				if policy.HasFailures(policyResults) {
+					// Print the normal diff output, then exit 2.
+					defer os.Exit(2)
+				}
+			}
+		}
+
+		// Summary mode: one-screen verdict.
+		if flags.summary {
+			fmt.Print(output.FormatSummaryReport(result, args[0], args[1], layerSummary, events, pkgChanges))
+			goto exitEval
+		}
+
+		// Layer attribution mode.
+		if flags.showLayers {
+			log.Step("Grouping changes by layer")
+			groups := output.GroupByLayer(result.Entries)
+
+			// Enrich groups with layer commands from image history.
+			if cfg2, err := img2.ConfigFile(); err == nil && cfg2 != nil {
+				for i := range groups {
+					idx := groups[i].Index
+					if idx >= 0 && idx < len(cfg2.History) {
+						groups[i].Command = cfg2.History[idx].CreatedBy
+					}
+				}
+			}
+
+			fmt.Print(output.FormatLayerAttribution(groups, args[0], args[1]))
+			goto exitEval
+		}
+
+		// Standard output.
 		switch flags.format {
 		case "terminal", "":
 			rendered := output.RenderTerminalWithSecurity(result, args[0], args[1], layerSummary, events)
@@ -270,6 +352,7 @@ Image sources supported:
 			return fmt.Errorf("unknown format %q: supported formats are terminal, json, markdown, sarif", flags.format)
 		}
 
+	exitEval:
 		// Parse --size-threshold (validate; error if invalid).
 		threshold, thresholdErr := exitcode.ParseSizeThreshold(flags.sizeThreshold)
 		if thresholdErr != nil {
@@ -277,8 +360,6 @@ Image sources supported:
 		}
 
 		// Evaluate exit code conditions AFTER all output is written.
-		// os.Exit(2) is used directly — not returned as error — to avoid cobra
-		// printing "Error: ..." to stderr and exiting 1 instead of 2.
 		ecOpts := exitcode.Options{
 			ExitOnChange:   flags.exitOnChange,
 			ExitOnSecurity: flags.exitOnSecurity,
@@ -309,11 +390,16 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&flags.exitOnChange, "exit-code", false, "exit 2 if any file changes are found")
 	rootCmd.PersistentFlags().BoolVar(&flags.exitOnSecurity, "fail-on-security", false, "exit 2 if security events are detected")
 	rootCmd.PersistentFlags().StringVar(&flags.sizeThreshold, "size-threshold", "", "exit 2 if net size increase exceeds threshold (e.g., 10MB, 500KB)")
-	rootCmd.PersistentFlags().StringArrayVar(&flags.include, "include", nil, "glob patterns to include (repeatable, e.g., --include \"etc/**\")")
-	rootCmd.PersistentFlags().StringArrayVar(&flags.exclude, "exclude", nil, "glob patterns to exclude (repeatable, e.g., --exclude \"var/cache/**\")")
+	rootCmd.PersistentFlags().StringArrayVar(&flags.include, "include", nil, "glob patterns to include (repeatable)")
+	rootCmd.PersistentFlags().StringArrayVar(&flags.exclude, "exclude", nil, "glob patterns to exclude (repeatable)")
 	rootCmd.PersistentFlags().BoolVarP(&flags.verbose, "verbose", "v", false, "enable verbose logging to stderr")
 	rootCmd.PersistentFlags().BoolVar(&flags.contentDiff, "content-diff", false, "show unified diff for modified text files")
 	rootCmd.PersistentFlags().BoolVar(&flags.showPackages, "packages", false, "show package-level changes (APK, DEB)")
+	rootCmd.PersistentFlags().BoolVar(&flags.summary, "summary", false, "show one-screen summary instead of per-file listing")
+	rootCmd.PersistentFlags().BoolVar(&flags.policyCheck, "policy", false, "evaluate policy rules from .rift.yml")
+	rootCmd.PersistentFlags().BoolVar(&flags.scanSecrets, "secrets", false, "scan file content for secrets (keys, tokens, credentials)")
+	rootCmd.PersistentFlags().BoolVar(&flags.showLayers, "layers", false, "group changes by Dockerfile layer")
+	rootCmd.PersistentFlags().StringVar(&flags.dockerfile, "dockerfile", "", "path to Dockerfile for layer-to-instruction mapping")
 }
 
 // applyConfig loads the config file and applies defaults for flags not explicitly set on CLI.
@@ -324,7 +410,6 @@ func applyConfig(cmd *cobra.Command) {
 		return
 	}
 
-	// Only apply config values for flags not explicitly set on the command line.
 	if !cmd.Flags().Changed("format") && cfg.Format != "" {
 		flags.format = cfg.Format
 	}
