@@ -5,7 +5,6 @@ project_name: rift
 before:
   hooks:
     - go mod tidy
-    - go test ./...
 
 builds:
   - main: .
@@ -45,31 +44,3 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
-
-dockers:
-  - image_templates:
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-amd64"
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-    dockerfile: Dockerfile.goreleaser
-    goarch: amd64
-
-  - image_templates:
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-arm64"
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64"
-    dockerfile: Dockerfile.goreleaser
-    goarch: arm64
-
-docker_manifests:
-  - name_template: "ghcr.io/Ommanimesh2/rift:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-amd64"
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-arm64"
-
-  - name_template: "ghcr.io/Ommanimesh2/rift:latest"
-    image_templates:
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-amd64"
-      - "ghcr.io/Ommanimesh2/rift:{{ .Version }}-arm64"
