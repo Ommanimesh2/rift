@@ -7,7 +7,8 @@
 **The `git diff` for container images.**
 
 File-level diff for container images — files added, removed, modified — with size impact,
-security analysis, package-level awareness, and CI/CD-ready output. Replaces
+security analysis, secrets detection, layer attribution, package awareness, policy enforcement,
+and CI/CD-ready output. Replaces
 [Google's archived container-diff](https://github.com/GoogleContainerTools/container-diff).
 
 ---
@@ -20,45 +21,152 @@ security analysis, package-level awareness, and CI/CD-ready output. Replaces
 go install github.com/Ommanimesh2/rift@latest
 ```
 
-**Docker:**
-
-```sh
-docker run --rm ghcr.io/Ommanimesh2/rift nginx:1.24 nginx:1.25
-```
-
 **Download binary:**
 
 Grab the latest release from [GitHub Releases](https://github.com/Ommanimesh2/rift/releases).
+
+**Self-update:**
+
+```sh
+rift update
+```
 
 ---
 
 ## Quick Start
 
 ```sh
-# Compare two registry images
-rift nginx:1.24 nginx:1.25
+# One-screen verdict — the fastest way to see what changed
+rift --summary node:18-alpine node:20-alpine
 
-# Compare local Docker daemon images
-rift myapp:latest myapp:v2.0
+# Full file-level diff
+rift alpine:3.18 alpine:3.19
 
-# Compare OCI tarball archives
-rift ./old.tar ./new.tar
+# Group changes by Dockerfile instruction
+rift --layers node:18-alpine node:20-alpine
 
-# Output JSON for pipelines
+# Security audit with secrets scanning
+rift --secrets --fail-on-security myapp:v1 myapp:v2
+
+# Enforce policy rules from .rift.yml
+rift --policy myapp:v1 myapp:v2
+
+# JSON output for CI/CD pipelines
 rift --format json alpine:3.18 alpine:3.19
-
-# Show only security-relevant changes
-rift --security-only ubuntu:22.04 ubuntu:24.04
-
-# Show package-level changes (APK/DEB)
-rift --packages alpine:3.18 alpine:3.19
 
 # Interactive TUI browser
 rift tui nginx:1.24 nginx:1.25
-
-# Fast manifest-only check (no content download)
-rift --quick nginx:1.24 nginx:1.25
 ```
+
+---
+
+## Summary Mode
+
+Get the full picture in 6 lines:
+
+```sh
+rift --summary node:18-alpine node:20-alpine
+```
+
+```
+  Image:    node:18-alpine → node:20-alpine
+  Size:     42.8 MB → 46.1 MB (+3.3 MB)
+  Files:    48 added, 11 removed, 312 modified
+  Packages: alpine-baselayout 3.6.8-r1→3.7.1-r8, alpine-keys 2.5-r0→2.6-r0, +13 more upgraded, +1 new
+  Security: 1 perm escalation, 3 new executable, 2 world-writable, 1 SUID/SGID
+  Verdict:  !! 7 security finding(s)
+```
+
+No scrolling, no noise. One command, full verdict.
+
+---
+
+## Layer Attribution
+
+See which Dockerfile instruction caused each change:
+
+```sh
+rift --layers node:18-alpine node:20-alpine
+```
+
+```
+Comparing node:18-alpine → node:20-alpine (by layer)
+
+Layer 0 (ADD alpine-minirootfs-3.23.3-x86_64.tar.gz / # buildkit)
+  ~ bin/busybox  (-4096 bytes)
+  ~ sbin/apk  (+44.4 KB)
+  + usr/lib/libapk.so.3.0.0  (+270.7 KB)
+  ~ usr/lib/libcrypto.so.3  (+471.4 KB)
+  Layer total: 601.3 KB
+
+Layer 1 (CMD ["/bin/sh"])
+  ~ usr/local/bin/node  (+7.5 MB)
+  + usr/local/include/node/cppgc/  (+150 KB)
+  ~ usr/local/lib/node_modules/corepack/dist/lib/corepack.cjs  (+4.0 KB)
+  Layer total: 7.7 MB
+
+Layer 2 (ENV NODE_VERSION=20.20.1)
+  ~ lib/apk/db/installed  (+270 bytes)
+  Layer total: -2382 bytes
+```
+
+Turns "312 file changes" into "7.7 MB came from the Node binary upgrade in Layer 1."
+
+---
+
+## Secrets Detection
+
+Scan images for leaked credentials, keys, and tokens:
+
+```sh
+# Content-based scanning (private keys, AWS keys, API tokens)
+rift --secrets myapp:v1 myapp:v2
+
+# Fail CI if secrets are found
+rift --secrets --fail-on-security myapp:v1 myapp:v2
+```
+
+**Path-based detection** runs automatically on every diff — flags files like `.env`, `id_rsa`, `credentials.json`, `*.pem`, `.aws/credentials`.
+
+**Content-based detection** (`--secrets` flag) scans file content for:
+- Private keys (`-----BEGIN RSA PRIVATE KEY-----`)
+- AWS access keys (`AKIA...`)
+- API tokens and secrets (`api_key=...`, `access_token=...`)
+
+---
+
+## Policy Enforcement
+
+Define rules in `.rift.yml` and enforce them in CI:
+
+```sh
+rift init  # Creates .rift.yml template
+```
+
+Add a policy section:
+
+```yaml
+policy:
+  max-size-growth: 50MB
+  no-new-suid: true
+  no-world-writable: true
+  max-new-executables: 10
+```
+
+```sh
+rift --policy myapp:v1 myapp:v2
+```
+
+```
+Policy Evaluation
+━━━━━━━━━━━━━━━━━━━━━━━━
+  [PASS] max-size-growth: within limit
+  [PASS] no-new-suid: no SUID/SGID changes
+  [FAIL] no-world-writable: found world-writable file at lib/libz.so.1
+  [PASS] max-new-executables: 1 new executables (limit: 10)
+```
+
+Exits with code 2 if any rule fails — drop it into CI and forget about it.
 
 ---
 
@@ -76,56 +184,23 @@ Registry images use Docker credential helpers automatically (`~/.docker/config.j
 
 ---
 
-## Flags
-
-```
-Usage:
-  rift <image1> <image2> [flags]
-
-Commands:
-  tui            Interactive TUI for browsing image diffs
-  init           Create a .rift.yml configuration file
-  completion     Generate shell completion scripts (bash, zsh, fish, powershell)
-  version        Print version information
-
-Flags:
-  --format string         Output format: terminal, json, markdown, sarif (default "terminal")
-  --security-only         Show only security-relevant changes
-  --quick                 Manifest-only comparison (no content download)
-  --platform string       Target platform for multi-arch images (e.g., linux/amd64)
-  --username string       Registry username for explicit authentication
-  --password string       Registry password for explicit authentication
-  --include strings       Glob patterns to include (repeatable, e.g., --include "etc/**")
-  --exclude strings       Glob patterns to exclude (repeatable, e.g., --exclude "var/cache/**")
-  --content-diff          Show unified diff for modified text files
-  --packages              Show package-level changes (APK, DEB)
-  -v, --verbose           Enable verbose logging to stderr
-
-CI/CD flags:
-  --exit-code             Exit 2 if any file changes are found
-  --fail-on-security      Exit 2 if security events are detected
-  --size-threshold string Exit 2 if net size increase exceeds threshold (e.g., 10MB, 500KB)
-
-  -h, --help              Show help
-      --version           Show version
-```
-
----
-
 ## Output Formats
 
 ### Terminal (default)
 
-Color-coded diff with size impact summary, per-layer breakdown, and security highlights:
+Color-coded diff with size deltas, layer breakdown, and security highlights:
+
+```sh
+rift alpine:3.18 alpine:3.19
+```
 
 ```
 Comparing alpine:3.18 → alpine:3.19
 
 ~ bin/busybox  [content]  (-8.0 KB)
 - bin/ed  (0 bytes)
-~ etc/alpine-release  [content]  (-1 bytes)
 + etc/udhcpc/udhcpc.conf  (+287 bytes)
-~ lib/ld-musl-x86_64.so.1  [content]  (+32.0 KB)
+~ lib/libcrypto.so.3  [content]  (+35.9 KB)
 
 Security Findings (2)
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -137,8 +212,6 @@ Summary: 3 added (+98.1 KB), 3 removed (-97.9 KB), 29 modified
 
 ### JSON
 
-Machine-readable output for CI/CD pipelines:
-
 ```sh
 rift --format json alpine:3.18 alpine:3.19
 ```
@@ -148,33 +221,21 @@ rift --format json alpine:3.18 alpine:3.19
   "image1": "alpine:3.18",
   "image2": "alpine:3.19",
   "summary": {
-    "added": 3,
-    "removed": 3,
-    "modified": 29,
-    "added_bytes": 100495,
-    "removed_bytes": 100280
+    "added": 3, "removed": 3, "modified": 29,
+    "added_bytes": 100495, "removed_bytes": 100280
   },
-  "changes": [
-    {
-      "path": "etc/alpine-release",
-      "type": "modified",
-      "size_delta": -1,
-      "changes": ["content"]
-    }
-  ],
-  "security_events": []
+  "changes": [...],
+  "security_events": [...]
 }
 ```
 
 ### Markdown
 
-GitHub-Flavored Markdown for PR comments and documentation:
-
 ```sh
 rift --format markdown myapp:v1 myapp:v2
 ```
 
-Output is a formatted table ready to paste into a PR description or GitHub Actions step summary.
+Ready to paste into PR descriptions or pipe to `$GITHUB_STEP_SUMMARY`.
 
 ### SARIF
 
@@ -183,8 +244,6 @@ Upload security findings directly to GitHub Code Scanning:
 ```sh
 rift --format sarif myapp:v1 myapp:v2 > results.sarif
 ```
-
-Use with GitHub Actions:
 
 ```yaml
 - name: Run rift security scan
@@ -199,7 +258,7 @@ Use with GitHub Actions:
 
 ## Path Filtering
 
-Focus on what matters by including or excluding paths:
+Focus on what matters:
 
 ```sh
 # Only show changes in /etc
@@ -207,9 +266,6 @@ rift --include "etc/**" alpine:3.18 alpine:3.19
 
 # Ignore cache and docs
 rift --exclude "var/cache/**" --exclude "usr/share/doc/**" myapp:v1 myapp:v2
-
-# Combine include and exclude
-rift --include "usr/**" --exclude "**/*.pyc" myapp:v1 myapp:v2
 ```
 
 Glob patterns support `**` for recursive matching.
@@ -217,8 +273,6 @@ Glob patterns support `**` for recursive matching.
 ---
 
 ## Package-Level Changes
-
-See what packages changed instead of raw file diffs:
 
 ```sh
 rift --packages alpine:3.18 alpine:3.19
@@ -244,13 +298,11 @@ See exactly what changed inside modified text files:
 rift --content-diff alpine:3.18 alpine:3.19
 ```
 
-Generates unified diffs for text files like config files, scripts, and package databases. Binary files and files over 1 MB are skipped.
+Generates unified diffs for text files like config files and scripts. Binary files and files over 1 MB are skipped.
 
 ---
 
 ## Interactive TUI
-
-Browse diffs interactively:
 
 ```sh
 rift tui alpine:3.18 alpine:3.19
@@ -268,7 +320,7 @@ rift tui alpine:3.18 alpine:3.19
 
 ## Security Analysis
 
-rift automatically detects security-relevant changes and highlights them in the output.
+rift detects security-relevant changes automatically:
 
 | Event | Trigger |
 |-------|---------|
@@ -279,13 +331,14 @@ rift automatically detects security-relevant changes and highlights them in the 
 | `new_executable` | Added non-directory file with any execute bit |
 | `world_writable` | Added or modified file is world-writable |
 | `perm_escalation` | Modified file has strictly more permissive bits |
+| `secret_private_key` | File contains a private key |
+| `secret_aws_key` | File contains an AWS access key |
+| `secret_api_token` | File contains an API key/token pattern |
+| `secret_file_path` | File matches a known secret path (.env, id_rsa, etc.) |
 
 ```sh
-# Show only security-relevant paths
 rift --security-only ubuntu:22.04 ubuntu:24.04
-
-# Fail CI on any security finding
-rift --fail-on-security ubuntu:22.04 ubuntu:24.04
+rift --fail-on-security myapp:v1 myapp:v2
 ```
 
 ---
@@ -298,11 +351,9 @@ rift --fail-on-security ubuntu:22.04 ubuntu:24.04
 |------|---------|
 | `0` | Success — no conditions triggered |
 | `1` | Tool error (bad arguments, unreachable image, etc.) |
-| `2` | Condition triggered (changes, security events, or size threshold exceeded) |
+| `2` | Condition triggered (changes, security, size, or policy failure) |
 
 ### GitHub Action
-
-Use rift directly in your workflows:
 
 ```yaml
 - name: Image diff
@@ -315,7 +366,7 @@ Use rift directly in your workflows:
     size-threshold: 10MB
 ```
 
-Or run manually:
+### CI pipeline example
 
 ```yaml
 - name: Image diff check
@@ -331,20 +382,13 @@ Or run manually:
 ### Size threshold gate
 
 ```sh
-# Fail if image grew by more than 5 MB
-rift --size-threshold 5MB myapp:v1 myapp:v2
-
-# Fail if image grew at all
-rift --exit-code myapp:v1 myapp:v2
+rift --size-threshold 5MB myapp:v1 myapp:v2   # Fail if grew > 5 MB
+rift --exit-code myapp:v1 myapp:v2            # Fail if anything changed
 ```
 
-Threshold units: `B`, `KB`, `MB`, `GB` (case-insensitive). Decimals supported: `1.5MB`.
+Threshold units: `B`, `KB`, `MB`, `GB` (case-insensitive, decimals supported).
 
 ### Private registries
-
-rift uses Docker credential helpers by default — if `docker pull` works, rift works.
-
-For explicit credentials (useful in CI without Docker config):
 
 ```sh
 rift --username $REGISTRY_USER --password $REGISTRY_PASS \
@@ -354,25 +398,16 @@ rift --username $REGISTRY_USER --password $REGISTRY_PASS \
 ### Multi-arch images
 
 ```sh
-# Default: use host platform
-rift myapp:v1 myapp:v2
-
-# Select specific platform
 rift --platform linux/arm64 myapp:v1 myapp:v2
-rift --platform linux/amd64 myapp:v1 myapp:v2
 ```
 
 ---
 
 ## Configuration
 
-Create a `.rift.yml` in your project to set default flags:
-
 ```sh
-rift init
+rift init  # Creates .rift.yml
 ```
-
-Example `.rift.yml`:
 
 ```yaml
 format: terminal
@@ -380,71 +415,98 @@ exclude:
   - "var/cache/**"
   - "**/*.pyc"
 fail-on-security: true
-verbose: false
+
+policy:
+  max-size-growth: 50MB
+  no-new-suid: true
+  no-world-writable: true
+  max-new-executables: 10
 ```
 
-CLI flags always override config file values. Config is loaded from `.rift.yml` in the current directory, then `~/.config/rift/config.yml`.
+CLI flags override config values. Config is loaded from `.rift.yml` in the current directory, then `~/.config/rift/config.yml`.
+
+---
+
+## All Flags
+
+```
+Usage:
+  rift <image1> <image2> [flags]
+
+Commands:
+  tui            Interactive TUI for browsing image diffs
+  init           Create a .rift.yml configuration file
+  update         Update rift to the latest version
+  completion     Generate shell completion scripts
+  version        Print version information
+
+Flags:
+  --summary               One-screen verdict (file counts, packages, security, verdict)
+  --layers                Group changes by Dockerfile layer
+  --secrets               Scan file content for secrets (keys, tokens, credentials)
+  --policy                Evaluate policy rules from .rift.yml
+  --format string         Output format: terminal, json, markdown, sarif (default "terminal")
+  --security-only         Show only security-relevant changes
+  --packages              Show package-level changes (APK, DEB)
+  --content-diff          Show unified diff for modified text files
+  --include strings       Glob patterns to include (repeatable)
+  --exclude strings       Glob patterns to exclude (repeatable)
+  --quick                 Manifest-only comparison (no content download)
+  --platform string       Target platform for multi-arch images
+  --username string       Registry username
+  --password string       Registry password
+  --dockerfile string     Path to Dockerfile for layer-to-instruction mapping
+  -v, --verbose           Enable verbose logging to stderr
+
+CI/CD flags:
+  --exit-code             Exit 2 if any file changes are found
+  --fail-on-security      Exit 2 if security events are detected
+  --size-threshold string Exit 2 if net size increase exceeds threshold (e.g., 10MB)
+```
 
 ---
 
 ## Docker CLI Plugin
 
-Use rift as a Docker subcommand:
-
 ```sh
-# Install
 ./scripts/install-docker-plugin.sh ./rift
-
-# Use
 docker rift nginx:1.24 nginx:1.25
 ```
-
----
-
-## Performance
-
-rift is fast by default and has explicit speed modes:
-
-| Feature | Description |
-|---------|-------------|
-| **Shared layer skip** | Layers with identical digests are not downloaded or parsed |
-| **Streaming** | Tar entries are streamed in memory — no full layer download to disk |
-| **`--quick` mode** | Manifest-only comparison using layer digests, no content download at all |
-
-```sh
-# Instant comparison via manifest only (registry images)
-rift --quick nginx:1.24 nginx:1.25
-```
-
-`--quick` shows layer-level changes (which layers were added, removed, or replaced) without
-downloading any content. Useful for a fast "did anything change?" check in CI.
 
 ---
 
 ## Shell Completions
 
 ```sh
-# Bash
-source <(rift completion bash)
-
-# Zsh
-rift completion zsh > "${fpath[1]}/_rift"
-
-# Fish
-rift completion fish | source
+source <(rift completion bash)                    # Bash
+rift completion zsh > "${fpath[1]}/_rift"          # Zsh
+rift completion fish | source                      # Fish
 ```
+
+---
+
+## Performance
+
+| Feature | Description |
+|---------|-------------|
+| **Shared layer skip** | Layers with identical digests are not downloaded or parsed |
+| **Streaming** | Tar entries are streamed in memory — no disk I/O |
+| **`--quick` mode** | Manifest-only comparison, no content download |
+| **`--summary` mode** | Computes everything but renders only the verdict |
 
 ---
 
 ## How It Works
 
-1. **Source detection** — auto-detects registry, daemon, or tarball from reference string
+1. **Source detection** — auto-detects registry, daemon, or tarball
 2. **Layer skip** — compares layer digests; identical leading layers are skipped entirely
-3. **Tree construction** — streams remaining layers, building an in-memory file tree per image (handles OCI whiteout files for layer deletions)
-4. **Diff** — compares the two squashed file trees, computing per-file changes with size deltas and attribute flags (content, mode, uid/gid, symlink target)
-5. **Security analysis** — pure-function pass over the diff result, flagging security-relevant permission changes
-6. **Package detection** — parses APK/DEB package databases from both images to show package-level changes
-7. **Output** — renders to terminal (lipgloss), JSON, Markdown, or SARIF
+3. **Tree construction** — streams layers into in-memory file trees with layer attribution
+4. **Diff** — two-pass comparison with per-file change flags and size deltas
+5. **Security analysis** — flags SUID/SGID, world-writable, permission escalation, new executables
+6. **Secrets detection** — path-based (always on) and content-based (`--secrets`) scanning
+7. **Package detection** — parses APK/DEB databases for package-level changes
+8. **Policy evaluation** — checks configurable rules from `.rift.yml`
+9. **Output** — terminal, JSON, Markdown, SARIF, or one-screen summary
 
 ---
 
